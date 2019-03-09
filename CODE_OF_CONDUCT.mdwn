@@ -1,0 +1,5 @@
+Until otherwise indicated, this project adopts the Rust code of conduct found
+at <https://www.rust-lang.org/policies/code-of-conduct>
+
+For this project, all contacts should be assumed to be Daniel Silverstone
+and he can be reached at: <mailto:dsilvers@digital-scurf.org>
