@@ -28,8 +28,14 @@ impl Parse for TestamentOptions {
 pub fn git_testament(input: TokenStream) -> TokenStream {
     let TestamentOptions { name } = parse_macro_input!(input as TestamentOptions);
 
-    let repo = match Repository::open(
+    let ceilings = env::var("GIT_CEILING_DIRECTORIES").unwrap_or_else(|_| "/".to_owned());
+
+    let ceilings = ceilings.split(':');
+
+    let repo = match Repository::open_ext(
         env::var("CARGO_MANIFEST_DIR").expect("Unable to find CARGO_MANIFEST_DIR"),
+        git2::RepositoryOpenFlags::empty(),
+        ceilings,
     ) {
         Ok(repo) => repo,
         Err(e) => {
