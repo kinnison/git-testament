@@ -4,4 +4,10 @@ version = "0.1.0"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 
+[workspace]
+members = [
+    "git-testament-derive",
+]
+
 [dependencies]
+git-testament-derive = { path = "git-testament-derive" }
