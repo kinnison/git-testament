@@ -1,8 +1,8 @@
 use git_testament::git_testament;
 
-git_testament!(testament);
+git_testament!(TESTAMENT);
 
 #[test]
 fn it_works() {
-    println!("Testament: {}", testament);
+    println!("Testament: {}", TESTAMENT);
 }
