@@ -6,7 +6,7 @@ version = "0.1.0"
 [dependencies]
 syn = "0.15"
 quote = "0.6"
-git2 = "0.8"
+git2 = { version = "0.8", default-features = false }
 chrono = "0.4"
 log = "0.4"
 
