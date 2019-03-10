@@ -7,8 +7,11 @@ edition = "2018"
 [workspace]
 members = [
     "git-testament-derive",
-    "test-template"
+    "testutils"
 ]
 
 [dependencies]
 git-testament-derive = { path = "git-testament-derive" }
+
+[dev-dependencies]
+testutils = { path = "testutils" }

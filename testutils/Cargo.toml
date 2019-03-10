@@ -1,0 +1,11 @@
+[package]
+name = "testutils"
+version = "0.1.0"
+authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
+edition = "2018"
+
+[dependencies]
+tempdir = "0.3.7"
+rand = "^0.4"
+regex = "1.1.2"
+lazy_static = "1.0.0"
