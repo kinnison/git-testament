@@ -213,6 +213,11 @@ impl TestSentinel {
         assert_eq!(dirty, manifest.dirty);
     }
 
+    pub fn assert_manifest_contains(&self, substr: &str) {
+        let manifest = self.get_manifest().expect("Unable to retrieve manifest");
+        assert!(manifest.find(substr) != None);
+    }
+
     pub fn dirty_code(&self) {
         let main_rs = self.dir.path().join("src/main.rs");
         let code = fs::read_to_string(&main_rs).expect("Unable to read code");

@@ -13,7 +13,7 @@ use testutils;
 fn verify_builds_ok() {
     let test = testutils::prep_test("no-git");
     assert!(test.run_cmd("cargo", &["build"]));
-    test.assert_manifest_exact("not_in_git");
+    test.assert_manifest_contains("0.1.0");
 }
 
 #[test]
@@ -21,7 +21,7 @@ fn verify_no_commit() {
     let test = testutils::prep_test("no-commit");
     assert!(test.run_cmd("git", &["init"]));
     assert!(test.run_cmd("cargo", &["build"]));
-    test.assert_manifest_exact("uncommitted");
+    test.assert_manifest_contains("uncommitted");
 }
 
 #[test]

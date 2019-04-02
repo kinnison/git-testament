@@ -11,7 +11,7 @@ use syn::{parse_macro_input, Ident};
 
 use git2::Repository;
 
-use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime};
+use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime, Utc};
 
 use log::warn;
 
@@ -61,6 +61,10 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
     let ceilings = ceilings.split(':');
 
+    let pkgver = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "?.?.?".to_owned());
+    let now = Utc::now();
+    let now = format!("{}", now.format("%Y-%m-%d"));
+
     let repo = match Repository::open_ext(
         env::var("CARGO_MANIFEST_DIR").expect("Unable to find CARGO_MANIFEST_DIR"),
         git2::RepositoryOpenFlags::empty(),
@@ -75,7 +79,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             );
             return (quote! {
                 static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
-                    commit: git_testament::CommitKind::NoRepository,
+                    commit: git_testament::CommitKind::NoRepository(#pkgver, #now),
                     modifications: &[],
                 };
             })
@@ -91,7 +95,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
                 warn!("No commit at HEAD: {}", e);
                 return (quote! {
                 static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
-                    commit: git_testament::CommitKind::NoCommit,
+                    commit: git_testament::CommitKind::NoCommit(#pkgver, #now),
                     modifications: &[],
                 };
             })

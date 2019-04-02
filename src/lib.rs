@@ -14,8 +14,8 @@ pub enum GitModification<'a> {
 
 #[derive(Debug)]
 pub enum CommitKind<'a> {
-    NoRepository,
-    NoCommit,
+    NoRepository(&'a str, &'a str),
+    NoCommit(&'a str, &'a str),
     NoTags(&'a str, &'a str),
     FromTag(&'a str, &'a str, &'a str, usize),
 }
@@ -42,7 +42,13 @@ pub enum CommitKind<'a> {
 ///
 /// In general this is only of use for binaries, since libraries will generally
 /// be built from `crates.io` provided tarballs and as such won't carry the
-/// information needed.
+/// information needed.  In such a fallback position the string will be something
+/// along the lines of `"x.y (somedate)"` where `x.y` is the crate's version and
+/// `somedate` is the date of the build.  You'll get similar information if the
+/// crate is built in a git repository on a branch with no commits yet (e.g.
+/// when you first have run `cargo init`) though that will include the string
+/// `uncommitted` to indicate that once commits are made the information will be
+/// of more use.
 #[derive(Debug)]
 pub struct GitTestament<'a> {
     pub commit: CommitKind<'a>,
@@ -52,8 +58,12 @@ pub struct GitTestament<'a> {
 impl<'a> Display for CommitKind<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
-            CommitKind::NoRepository => fmt.write_str("not_in_git"),
-            CommitKind::NoCommit => fmt.write_str("uncommitted"),
+            CommitKind::NoRepository(crate_ver, build_date) => {
+                fmt.write_fmt(format_args!("{} ({})", crate_ver, build_date))
+            }
+            CommitKind::NoCommit(crate_ver, build_date) => {
+                fmt.write_fmt(format_args!("{} (uncommitted {})", crate_ver, build_date))
+            }
             CommitKind::NoTags(commit, when) => {
                 fmt.write_fmt(format_args!("unknown ({} {})", &commit[..9], when))
             }
