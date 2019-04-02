@@ -20,7 +20,7 @@ chrono = "0.4"
 log = "0.4"
 
 [dev-dependencies]
-git-testament = { path = ".." }
+git-testament = { version="0.1.0", path = ".." }
 
 [lib]
 proc-macro = true
