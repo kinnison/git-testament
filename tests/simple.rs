@@ -37,7 +37,7 @@ fn verify_no_changes_no_tags() {
 
 #[test]
 fn verify_no_changes_with_a_tag() {
-    let test = testutils::prep_test("no-changes");
+    let test = testutils::prep_test("no-changes-with-tag");
     assert!(test.run_cmd("git", &["init"]));
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
@@ -49,7 +49,7 @@ fn verify_no_changes_with_a_tag() {
 
 #[test]
 fn verify_dirty_changes_with_a_tag() {
-    let test = testutils::prep_test("no-changes");
+    let test = testutils::prep_test("dirty-with-tag");
     assert!(test.run_cmd("git", &["init"]));
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
@@ -62,7 +62,7 @@ fn verify_dirty_changes_with_a_tag() {
 
 #[test]
 fn verify_another_commit_with_a_tag() {
-    let test = testutils::prep_test("no-changes");
+    let test = testutils::prep_test("tag-plus-commit");
     assert!(test.run_cmd("git", &["init"]));
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
