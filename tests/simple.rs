@@ -7,7 +7,7 @@ fn it_works() {
     println!("Testament: {}", TESTAMENT);
 }
 
-use testutils;
+mod testutils;
 
 #[test]
 fn verify_builds_ok() {

@@ -47,11 +47,11 @@ pub fn prep_test(name: &str) -> TestSentinel {
     // Copy the contents of the test template in
     fs::create_dir(outdir.path().join("src")).expect("Unable to make src/ dir");
     fs::copy(
-        concat!(env!("CARGO_MANIFEST_DIR"), "/template/src/main.rs"),
+        concat!(env!("CARGO_MANIFEST_DIR"), "/test-template/src/main.rs"),
         outdir.path().join("src/main.rs"),
     )
     .expect("Unable to copy main.rs in");
-    let toml = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/template/Cargo.toml"));
+    let toml = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/test-template/Cargo.toml"));
     let toml = toml.replace("name = \"test2\"", &format!("name = \"{}\"", name));
     fs::write(
         outdir.path().join("Cargo.toml"),

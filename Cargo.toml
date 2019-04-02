@@ -4,14 +4,24 @@ version = "0.1.0"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 
+description = "Record git working tree status when compiling your crate"
+documentation = "https://docs.rs/git-testament/"
+repository = "https://github.com/kinnison/git-testament/"
+license = "BSD-3-Clause"
+
+[badges]
+maintenance = { status = "experimental" }
+
 [workspace]
 members = [
     "git-testament-derive",
-    "testutils"
 ]
 
 [dependencies]
-git-testament-derive = { path = "git-testament-derive" }
+git-testament-derive = { version = "0.1.0", path = "git-testament-derive" }
 
 [dev-dependencies]
-testutils = { path = "testutils" }
+tempdir = "0.3.7"
+rand = "^0.4"
+regex = "1.1.2"
+lazy_static = "1.0.0"
