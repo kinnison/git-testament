@@ -1,3 +1,5 @@
+//! Derive macro for `git_testament`
+//!
 extern crate proc_macro;
 
 use std::env;
@@ -24,6 +26,33 @@ impl Parse for TestamentOptions {
     }
 }
 
+/// Generate a testament for the working tree.
+///
+/// This macro declares a static data structure which represents a testament
+/// to the state of a git repository at the point that a crate was built.
+///
+/// The intention is that the macro should be used at the top level of a binary
+/// crate to provide information about the state of the codebase that the output
+/// program was built from.  This includes a number of things such as the commit
+/// SHA, any related tag, how many commits since the tag, the date of the commit,
+/// and if there are any "dirty" parts to the working tree such as modified files,
+/// uncommitted files, etc.
+///
+/// ```
+/// // Bring the procedural macro into scope
+/// use git_testament::git_testament;
+///
+/// // Declare a testament, it'll end up as a static, so give it a capital
+/// // letters name or it'll result in a warning.
+/// git_testament!(TESTAMENT);
+/// # fn main() {
+///
+/// // ... later, you can display the testament.
+/// println!("app version {}", TESTAMENT);
+/// # }
+/// ```
+///
+/// See [`git_testament::GitTestament`] for the type of the defined `TESTAMENT`.
 #[proc_macro]
 pub fn git_testament(input: TokenStream) -> TokenStream {
     let TestamentOptions { name } = parse_macro_input!(input as TestamentOptions);

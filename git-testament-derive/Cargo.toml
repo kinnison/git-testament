@@ -10,5 +10,8 @@ git2 = { version = "0.8", default-features = false }
 chrono = "0.4"
 log = "0.4"
 
+[dev-dependencies]
+git-testament = { path = ".." }
+
 [lib]
 proc-macro = true
