@@ -4,19 +4,34 @@ use std::fmt::{self, Display, Formatter};
 
 pub use git_testament_derive::git_testament;
 
+/// A modification to a working tree, recorded when the testament was created.
 #[derive(Debug)]
 pub enum GitModification<'a> {
+    /// A file or directory was added but not committed
     Added(&'a [u8]),
+    /// A file or directory was removed but not committed
     Removed(&'a [u8]),
+    /// A file was modified in some way
     Modified(&'a [u8]),
+    /// A file or directory was present but untracked
     Untracked(&'a [u8]),
 }
 
+/// The kind of commit available at the point that the testament was created.
 #[derive(Debug)]
 pub enum CommitKind<'a> {
+    /// No repository was present.  Instead the crate's version and the
+    /// build date are recorded.
     NoRepository(&'a str, &'a str),
+    /// No commit was present, though it was a repository.  Instead the crate's
+    /// version and the build date are recorded.
     NoCommit(&'a str, &'a str),
+    /// There are no tags in the repository in the history of the commit.
+    /// The commit hash and commit date are recorded.
     NoTags(&'a str, &'a str),
+    /// There were tags in the history of the commit.
+    /// The tag name, commit hash, commit date, and distance from the tag to
+    /// the commit are recorded.
     FromTag(&'a str, &'a str, &'a str, usize),
 }
 
@@ -53,6 +68,44 @@ pub enum CommitKind<'a> {
 pub struct GitTestament<'a> {
     pub commit: CommitKind<'a>,
     pub modifications: &'a [GitModification<'a>],
+}
+
+impl<'a> GitTestament<'a> {
+    #[doc(hidden)]
+    pub fn _render_with_version(&self, pkg_version: &str) -> String {
+        match self.commit {
+            CommitKind::FromTag(tag, _, _, _) => {
+                if tag.find(&pkg_version).is_some() {
+                    format!("{}", self)
+                } else {
+                    format!("{} :: {}", pkg_version, self)
+                }
+            }
+            _ => format!("{}", self),
+        }
+    }
+}
+
+/// Render a testament
+///
+/// This macro can be used to render a testament created with the `git_testament`
+/// macro.  It renders a testament with the added benefit of indicating if the
+/// tag does not match the version (by substring) then the crate's version and
+/// the tag will be displayed in the form: "crate-ver :: testament..."
+///
+/// ```
+/// use git_testament::{git_testament, render_testament};
+///
+/// git_testament!(TESTAMENT);
+///
+/// # fn main() {
+/// println!("The testament is: {}", render_testament!(TESTAMENT));
+/// # }
+#[macro_export]
+macro_rules! render_testament {
+    ( $testament:expr ) => {
+        $testament._render_with_version(env!("CARGO_PKG_VERSION"))
+    };
 }
 
 impl<'a> Display for CommitKind<'a> {
