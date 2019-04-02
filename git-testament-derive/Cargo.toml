@@ -4,6 +4,14 @@ edition = "2018"
 name = "git-testament-derive"
 version = "0.1.0"
 
+description = "Record git working tree status when compiling your crate - inner procedural macro"
+documentation = "https://docs.rs/git-testament/"
+repository = "https://github.com/kinnison/git-testament/"
+license = "BSD-3-Clause"
+
+[badges]
+maintenance = { status = "experimental" }
+
 [dependencies]
 syn = "0.15"
 quote = "0.6"
