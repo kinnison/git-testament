@@ -128,7 +128,7 @@ fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<Error>> {
         dir,
         &[
             "status",
-            "--porcelain=v1",
+            "--porcelain",
             "--untracked-files=all",
             "--ignore-submodules=all",
         ],
