@@ -1,6 +1,6 @@
 [package]
 name = "git-testament"
-version = "0.1.1"
+version = "0.1.2"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 
@@ -8,9 +8,11 @@ description = "Record git working tree status when compiling your crate"
 documentation = "https://docs.rs/git-testament/"
 repository = "https://github.com/kinnison/git-testament/"
 license = "BSD-3-Clause"
+readme = "README.md"
 
 [badges]
 maintenance = { status = "experimental" }
+travis-ci = { repository = "kinnison/git-testament", branch="master" }
 
 [workspace]
 members = [
