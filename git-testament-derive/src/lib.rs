@@ -3,13 +3,15 @@
 extern crate proc_macro;
 
 use std::env;
+use std::error::Error;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Stdio};
 
 use proc_macro::TokenStream;
 use quote::quote;
-use syn::parse::{Parse, ParseStream, Result};
+use syn::parse;
+use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, Ident};
-
-use git2::Repository;
 
 use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime, Utc};
 
@@ -20,10 +22,145 @@ struct TestamentOptions {
 }
 
 impl Parse for TestamentOptions {
-    fn parse(input: ParseStream) -> Result<Self> {
+    fn parse(input: ParseStream) -> parse::Result<Self> {
         let name: Ident = input.parse()?;
         Ok(TestamentOptions { name })
     }
+}
+
+fn run_git<GD>(dir: GD, args: &[&str]) -> Result<Vec<u8>, Box<Error>>
+where
+    GD: AsRef<Path>,
+{
+    let output = Command::new("git")
+        .args(args)
+        .stdin(Stdio::null())
+        .current_dir(dir)
+        .output()?;
+    if output.status.success() {
+        Ok(output.stdout)
+    } else {
+        Err(String::from_utf8(output.stderr)?)?
+    }
+}
+
+fn find_git_dir() -> Result<PathBuf, Box<Error>> {
+    // run git rev-parse --show-toplevel in the MANIFEST DIR
+    let dir = run_git(
+        env::var("CARGO_MANIFEST_DIR").unwrap(),
+        &["rev-parse", "--show-toplevel"],
+    )?;
+    // TODO: Find a way to go from the stdout to a pathbuf cleanly
+    // without relying on utf8ness
+    Ok(String::from_utf8(dir)?.trim_end().into())
+}
+
+fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), Box<Error>> {
+    // TODO: Again, try and remove UTF8 assumptions somehow
+    let sha = String::from_utf8(run_git(git_dir, &["rev-parse", refname])?)?
+        .trim_end()
+        .to_owned();
+    let show = String::from_utf8(run_git(git_dir, &["cat-file", "-p", &sha])?)?;
+
+    for line in show.lines() {
+        if line.starts_with("committer ") {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() < 2 {
+                Err(format!("Insufficient committer data in {}", line))?
+            }
+            let time: i64 = parts[parts.len() - 2].parse()?;
+            let offset: &str = parts[parts.len() - 1];
+            if offset.len() != 5 {
+                Err(format!(
+                    "Insufficient/Incorrect data in timezone offset: {}",
+                    offset
+                ))?
+            }
+            let offset: i32 = if offset.starts_with('-') {
+                // Negative...
+                let hours: i32 = offset[1..=2].parse()?;
+                let mins: i32 = offset[3..=4].parse()?;
+                -(mins + (hours * 60))
+            } else {
+                // Positive...
+                let hours: i32 = offset[1..=2].parse()?;
+                let mins: i32 = offset[3..=4].parse()?;
+                (mins + (hours * 60))
+            };
+            return Ok((sha, time, offset));
+        } else if line.is_empty() {
+            // Ran out of input, without finding committer
+            Err(format!(
+                "Unable to find committer information in {}",
+                refname
+            ))?
+        }
+    }
+
+    Err(format!("Somehow fell off the end of the commit data"))?
+}
+
+fn describe(dir: &Path, sha: &str) -> Result<String, Box<Error>> {
+    // TODO: Work out a way to not use UTF8?
+    Ok(
+        String::from_utf8(run_git(dir, &["describe", "--tags", "--long", sha])?)?
+            .trim_end()
+            .to_owned(),
+    )
+}
+
+enum StatusFlag {
+    Added,
+    Deleted,
+    Modified,
+    Untracked,
+}
+use StatusFlag::*;
+
+struct StatusEntry {
+    path: String,
+    status: StatusFlag,
+}
+
+fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<Error>> {
+    // TODO: Work out a way to not use UTF8?
+    let info = String::from_utf8(run_git(
+        dir,
+        &[
+            "status",
+            "--porcelain=v1",
+            "--untracked-files=all",
+            "--ignore-submodules=all",
+        ],
+    )?)?;
+
+    let mut ret = Vec::new();
+
+    for line in info.lines() {
+        let index_change = line.chars().next().unwrap();
+        let worktree_change = line.chars().skip(1).next().unwrap();
+        match (index_change, worktree_change) {
+            ('?', _) | (_, '?') => ret.push(StatusEntry {
+                path: line[3..].to_owned(),
+                status: Untracked,
+            }),
+            ('A', _) | (_, 'A') => ret.push(StatusEntry {
+                path: line[3..].to_owned(),
+                status: Added,
+            }),
+            ('M', _) | (_, 'M') => ret.push(StatusEntry {
+                path: line[3..].to_owned(),
+                status: Modified,
+            }),
+            ('D', _) | (_, 'D') => ret.push(StatusEntry {
+                path: line[3..].to_owned(),
+                status: Deleted,
+            }),
+            _ => {}
+        }
+    }
+
+    Ok(ret)
 }
 
 /// Generate a testament for the working tree.
@@ -57,20 +194,12 @@ impl Parse for TestamentOptions {
 pub fn git_testament(input: TokenStream) -> TokenStream {
     let TestamentOptions { name } = parse_macro_input!(input as TestamentOptions);
 
-    let ceilings = env::var("GIT_CEILING_DIRECTORIES").unwrap_or_else(|_| "/".to_owned());
-
-    let ceilings = ceilings.split(':');
-
     let pkgver = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "?.?.?".to_owned());
     let now = Utc::now();
     let now = format!("{}", now.format("%Y-%m-%d"));
 
-    let repo = match Repository::open_ext(
-        env::var("CARGO_MANIFEST_DIR").expect("Unable to find CARGO_MANIFEST_DIR"),
-        git2::RepositoryOpenFlags::empty(),
-        ceilings,
-    ) {
-        Ok(repo) => repo,
+    let git_dir = match find_git_dir() {
+        Ok(dir) => dir,
         Err(e) => {
             warn!(
                 "Unable to open a repo at {}: {}",
@@ -89,8 +218,8 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
     // Step one, determine the current commit ID and the date of that commit
     let (commit_id, commit_date) = {
-        let spec = match repo.revparse_single("HEAD") {
-            Ok(spec) => spec,
+        let (commit, commit_time, commit_offset) = match revparse_single(&git_dir, "HEAD") {
+            Ok(commit_data) => commit_data,
             Err(e) => {
                 warn!("No commit at HEAD: {}", e);
                 return (quote! {
@@ -103,19 +232,11 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             }
         };
 
-        let commit = match spec.peel_to_commit() {
-            Ok(commit) => commit,
-            Err(e) => panic!(
-                "Unable to continue, HEAD references something which isn't a commit: {}",
-                e
-            ),
-        };
-
         // Acquire the commit info
 
-        let commit_id = format!("{}", commit.id());
-        let naive = NaiveDateTime::from_timestamp(commit.time().seconds(), 0);
-        let offset = FixedOffset::east(commit.time().offset_minutes() * 60);
+        let commit_id = format!("{}", commit);
+        let naive = NaiveDateTime::from_timestamp(commit_time, 0);
+        let offset = FixedOffset::east(commit_offset * 60);
         let commit_time = DateTime::<FixedOffset>::from_utc(naive, offset);
         let commit_date = format!("{}", commit_time.format("%Y-%m-%d"));
 
@@ -125,14 +246,8 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     // Next determine if there was a tag, and if so, what our relationship
     // to that tag is...
 
-    let (tag, steps) = match repo.describe(git2::DescribeOptions::new().describe_tags()) {
-        Ok(desc) => {
-            let res = desc
-                .format(Some(
-                    git2::DescribeFormatOptions::new().always_use_long_format(true),
-                ))
-                .expect("Unable to format tag information");
-
+    let (tag, steps) = match describe(&git_dir, &commit_id) {
+        Ok(res) => {
             let res = &res[..res.rfind('-').expect("No commit info in describe!")];
             let tag_name = &res[..res.rfind('-').expect("No commit count in describe!")];
             let commit_count = res[tag_name.len() + 1..]
@@ -159,47 +274,24 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     };
 
     // Finally, we need to gather the modifications to the tree...
-    let statuses: Vec<_> = repo
-        .statuses(Some(
-            git2::StatusOptions::new()
-                .include_untracked(true)
-                .exclude_submodules(true),
-        ))
+    let statuses: Vec<_> = status(&git_dir)
         .expect("Unable to generate status information for working tree!")
-        .iter()
+        .into_iter()
         .map(|status| {
-            let path = status.path_bytes();
-            use git2::Delta::*;
-            let htoi = status
-                .head_to_index()
-                .map(|s| s.status())
-                .unwrap_or(Unmodified);
-            let itow = status
-                .index_to_workdir()
-                .map(|s| s.status())
-                .unwrap_or(Unmodified);
-            if htoi == Untracked || itow == Untracked {
-                quote! {
+            let path = status.path.into_bytes();
+            match status.status {
+                Untracked => quote! {
                     git_testament::GitModification::Untracked(&[#(#path),*])
-                }
-            } else if htoi == Added || itow == Added {
-                quote! {
+                },
+                Added => quote! {
                     git_testament::GitModification::Added(&[#(#path),*])
-                }
-            } else if htoi == Modified
-                || htoi == Typechange
-                || itow == Modified
-                || itow == Typechange
-            {
-                quote! {
+                },
+                Modified => quote! {
                     git_testament::GitModification::Modified(&[#(#path),*])
-                }
-            } else if htoi == Deleted || itow == Deleted {
-                quote! {
+                },
+                Deleted => quote! {
                     git_testament::GitModification::Removed(&[#(#path),*])
-                }
-            } else {
-                quote! {}
+                },
             }
         })
         .collect();
