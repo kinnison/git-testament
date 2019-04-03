@@ -11,7 +11,7 @@ pub enum GitModification<'a> {
     Added(&'a [u8]),
     /// A file or directory was removed but not committed
     Removed(&'a [u8]),
-    /// A file was modified in some way
+    /// A file was modified in some way, either content or permissions
     Modified(&'a [u8]),
     /// A file or directory was present but untracked
     Untracked(&'a [u8]),
