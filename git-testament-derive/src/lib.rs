@@ -100,6 +100,17 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
     Err(format!("Somehow fell off the end of the commit data"))?
 }
 
+fn branch_name(dir: &Path) -> Result<Option<String>, Box<Error>> {
+    let name = String::from_utf8(run_git(dir, &["name-rev", "--name-only", "HEAD"])?)?
+        .trim()
+        .to_owned();
+    if name.is_empty() {
+        Ok(None)
+    } else {
+        Ok(Some(name))
+    }
+}
+
 fn describe(dir: &Path, sha: &str) -> Result<String, Box<Error>> {
     // TODO: Work out a way to not use UTF8?
     Ok(
@@ -209,10 +220,20 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             return (quote! {
                 static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
                     commit: git_testament::CommitKind::NoRepository(#pkgver, #now),
-                    modifications: &[],
+                    .. git_testament::EMPTY_TESTAMENT
                 };
             })
             .into();
+        }
+    };
+
+    // Second simple preliminary step: attempt to get a branch name to report
+    let branch_name = match branch_name(&git_dir) {
+        Ok(Some(name)) => quote! {Some(#name)},
+        Ok(None) => quote! {None},
+        Err(e) => {
+            warn!("Unable to determine branch name: {}", e);
+            quote! {None}
         }
     };
 
@@ -225,7 +246,8 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
                 return (quote! {
                 static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
                     commit: git_testament::CommitKind::NoCommit(#pkgver, #now),
-                    modifications: &[],
+                    branch_name: #branch_name,
+                    .. git_testament::EMPTY_TESTAMENT
                 };
             })
             .into();
@@ -300,7 +322,8 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
         static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
             commit: #commit,
             modifications: &[#(#statuses),*],
-            ..git_testament::EMPTY_TESTAMENT
+            branch_name: #branch_name,
+            .. git_testament::EMPTY_TESTAMENT
         };
     })
     .into()

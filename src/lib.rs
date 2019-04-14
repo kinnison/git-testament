@@ -68,6 +68,7 @@ pub enum CommitKind<'a> {
 pub struct GitTestament<'a> {
     pub commit: CommitKind<'a>,
     pub modifications: &'a [GitModification<'a>],
+    pub branch_name: Option<&'a str>,
 }
 
 /// An empty testament.
@@ -80,6 +81,7 @@ pub struct GitTestament<'a> {
 pub const EMPTY_TESTAMENT: GitTestament = GitTestament {
     commit: CommitKind::NoRepository("unknown", "unknown"),
     modifications: &[],
+    branch_name: None,
 };
 
 impl<'a> GitTestament<'a> {
