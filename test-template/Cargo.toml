@@ -1,6 +1,6 @@
 [package]
 name = "test2"
-version = "0.1.0"
+version = "1.0.0"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 

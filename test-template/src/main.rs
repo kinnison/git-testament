@@ -1,7 +1,7 @@
-use git_testament::git_testament;
+use git_testament::{git_testament, render_testament};
 
 git_testament!(TESTAMENT);
 
 fn main() {
-    println!("{}", TESTAMENT);
+    println!("{}", render_testament!(TESTAMENT, "trusted"));
 }

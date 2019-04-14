@@ -86,10 +86,34 @@ pub const EMPTY_TESTAMENT: GitTestament = GitTestament {
 
 impl<'a> GitTestament<'a> {
     #[doc(hidden)]
-    pub fn _render_with_version(&self, pkg_version: &str) -> String {
+    pub fn _render_with_version(
+        &self,
+        pkg_version: &str,
+        trusted_branch: Option<&'static str>,
+    ) -> String {
         match self.commit {
-            CommitKind::FromTag(tag, _, _, _) => {
-                if tag.find(&pkg_version).is_some() {
+            CommitKind::FromTag(tag, hash, date, _) => {
+                let trusted = match trusted_branch {
+                    Some(_) => {
+                        if self.branch_name == trusted_branch {
+                            self.modifications.is_empty()
+                        } else {
+                            false
+                        }
+                    }
+                    None => false,
+                };
+                if trusted {
+                    // We trust our branch, so construct an equivalent
+                    // testament to render
+                    format!(
+                        "{}",
+                        GitTestament {
+                            commit: CommitKind::FromTag(pkg_version, hash, date, 0),
+                            ..*self
+                        }
+                    )
+                } else if tag.find(&pkg_version).is_some() {
                     format!("{}", self)
                 } else {
                     format!("{} :: {}", pkg_version, self)
@@ -107,6 +131,15 @@ impl<'a> GitTestament<'a> {
 /// tag does not match the version (by substring) then the crate's version and
 /// the tag will be displayed in the form: "crate-ver :: testament..."
 ///
+/// For situations where the crate version MUST override the tag, for example
+/// if you have a release process where you do not make the tag unless the CI
+/// constructing the release artifacts passes, then you can pass a second
+/// argument to this macro stating a branch name to trust.  If the working
+/// tree is clean and the branch name matches then the testament is rendered
+/// as though the tag had been pushed at the built commit.  Since this overrides
+/// a fundamental part of the behaviour of `git_testament` it is recommended that
+/// this *ONLY* be used if you have a trusted CI release branch process.
+///
 /// ```
 /// use git_testament::{git_testament, render_testament};
 ///
@@ -114,11 +147,15 @@ impl<'a> GitTestament<'a> {
 ///
 /// # fn main() {
 /// println!("The testament is: {}", render_testament!(TESTAMENT));
+/// println!("The fiddled testament is: {}", render_testament!(TESTAMENT, "trusted-branch"));
 /// # }
 #[macro_export]
 macro_rules! render_testament {
     ( $testament:expr ) => {
-        $testament._render_with_version(env!("CARGO_PKG_VERSION"))
+        $testament._render_with_version(env!("CARGO_PKG_VERSION"), None)
+    };
+    ( $testament:expr, $trusted_branch:expr ) => {
+        $testament._render_with_version(env!("CARGO_PKG_VERSION"), Some($trusted_branch))
     };
 }
 
