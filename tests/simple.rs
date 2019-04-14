@@ -83,10 +83,11 @@ fn verify_trusted_branch() {
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
     assert!(test.run_cmd("git", &["tag", "0.1.0"]));
-    assert!(test.run_cmd("git", &["checkout", "-b", "trusted"]));
+    assert!(test.run_cmd("git", &["checkout", "-b", "aaaa"]));
     test.dirty_code();
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "second"]));
+    assert!(test.run_cmd("git", &["checkout", "-b", "trusted"]));
     assert!(test.run_cmd("cargo", &["build"]));
     test.assert_manifest_parts("1.0.0", 0, "TODO", None);
 }

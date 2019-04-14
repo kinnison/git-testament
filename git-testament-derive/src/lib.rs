@@ -101,9 +101,14 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
 }
 
 fn branch_name(dir: &Path) -> Result<Option<String>, Box<Error>> {
-    let name = String::from_utf8(run_git(dir, &["name-rev", "--name-only", "HEAD"])?)?
-        .trim()
-        .to_owned();
+    let symref = match run_git(dir, &["symbolic-ref", "-q", "HEAD"]) {
+        Ok(s) => s,
+        Err(_) => run_git(dir, &["name-rev", "--name-only", "HEAD"])?,
+    };
+    let mut name = String::from_utf8(symref)?.trim().to_owned();
+    if name.starts_with("refs/heads/") {
+        name = name[11..].to_owned();
+    }
     if name.is_empty() {
         Ok(None)
     } else {
