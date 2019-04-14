@@ -7,13 +7,16 @@ use std::process::{Command, Stdio};
 use tempdir::TempDir;
 
 pub struct TestSentinel {
-    dir: TempDir,
+    dir: Option<TempDir>,
     prog_name: String,
 }
 
 impl Drop for TestSentinel {
     fn drop(&mut self) {
         self.run_cmd("cargo", &["clean", "-p", &self.prog_name]);
+        if env::var("DO_NOT_ERASE_TESTS").is_ok() {
+            self.dir.take().unwrap().into_path();
+        }
     }
 }
 
@@ -51,7 +54,10 @@ pub fn prep_test(name: &str) -> TestSentinel {
         outdir.path().join("src/main.rs"),
     )
     .expect("Unable to copy main.rs in");
-    let toml = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/test-template/Cargo.toml"));
+    let toml = include_str!(concat!(
+        env!("CARGO_MANIFEST_DIR"),
+        "/test-template/Cargo.toml"
+    ));
     let toml = toml.replace("name = \"test2\"", &format!("name = \"{}\"", name));
     fs::write(
         outdir.path().join("Cargo.toml"),
@@ -72,7 +78,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
     )
     .expect("Unable to write .cargo/config");
     TestSentinel {
-        dir: outdir,
+        dir: Some(outdir),
         prog_name: name,
     }
 }
@@ -81,8 +87,11 @@ impl TestSentinel {
     pub fn run_cmd(&self, cmd: &str, args: &[&str]) -> bool {
         let mut child = Command::new(cmd)
             .args(args)
-            .env("GIT_CEILING_DIRECTORIES", self.dir.path().parent().unwrap())
-            .current_dir(self.dir.path())
+            .env(
+                "GIT_CEILING_DIRECTORIES",
+                self.dir.as_ref().unwrap().path().parent().unwrap(),
+            )
+            .current_dir(self.dir.as_ref().unwrap().path())
             .stdin(Stdio::null())
             .stdout(Stdio::null())
             .stderr(Stdio::null())
@@ -103,8 +112,11 @@ impl TestSentinel {
 
     pub fn get_output(&self, cmd: &str, args: &[&str]) -> Option<String> {
         let res = Command::new(cmd)
-            .env("GIT_CEILING_DIRECTORIES", self.dir.path().parent().unwrap())
-            .current_dir(self.dir.path())
+            .env(
+                "GIT_CEILING_DIRECTORIES",
+                self.dir.as_ref().unwrap().path().parent().unwrap(),
+            )
+            .current_dir(self.dir.as_ref().unwrap().path())
             .args(args)
             .stdin(Stdio::null())
             .output()
@@ -219,7 +231,7 @@ impl TestSentinel {
     }
 
     pub fn dirty_code(&self) {
-        let main_rs = self.dir.path().join("src/main.rs");
+        let main_rs = self.dir.as_ref().unwrap().path().join("src/main.rs");
         let code = fs::read_to_string(&main_rs).expect("Unable to read code");
         fs::write(main_rs, format!("{}\n\n", code)).expect("Unable to write code");
     }
