@@ -300,6 +300,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
         static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
             commit: #commit,
             modifications: &[#(#statuses),*],
+            ..git_testament::EMPTY_TESTAMENT
         };
     })
     .into()

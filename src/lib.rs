@@ -70,6 +70,18 @@ pub struct GitTestament<'a> {
     pub modifications: &'a [GitModification<'a>],
 }
 
+/// An empty testament.
+///
+/// This is used by the derive macro to fill in defaults
+/// in the case that an older derive macro is used with a newer version
+/// of git_testament.
+///
+/// Typically this will not be used directly by a user.
+pub const EMPTY_TESTAMENT: GitTestament = GitTestament {
+    commit: CommitKind::NoRepository("unknown", "unknown"),
+    modifications: &[],
+};
+
 impl<'a> GitTestament<'a> {
     #[doc(hidden)]
     pub fn _render_with_version(&self, pkg_version: &str) -> String {
