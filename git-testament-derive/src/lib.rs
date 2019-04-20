@@ -154,7 +154,7 @@ fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<Error>> {
 
     for line in info.lines() {
         let index_change = line.chars().next().unwrap();
-        let worktree_change = line.chars().skip(1).next().unwrap();
+        let worktree_change = line.chars().nth(1).unwrap();
         match (index_change, worktree_change) {
             ('?', _) | (_, '?') => ret.push(StatusEntry {
                 path: line[3..].to_owned(),
