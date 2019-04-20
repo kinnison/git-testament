@@ -44,7 +44,9 @@ pub fn prep_test(name: &str) -> TestSentinel {
     .expect("Unable to create temporary directory for test");
 
     let mut rng = thread_rng();
-    let mut name: String = rng.gen_ascii_chars().take(10).collect();
+    let mut name = (0..10)
+        .map(|_| rng.sample(rand::distributions::Alphanumeric))
+        .collect::<String>();
     name.make_ascii_lowercase();
 
     // Copy the contents of the test template in
