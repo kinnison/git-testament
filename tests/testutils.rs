@@ -144,7 +144,7 @@ impl TestSentinel {
             .expect("Unable to retrieve manifest line");
         let caps = MANIFEST_RE
             .captures(first)
-            .expect(&format!("Unable to parse manifest line: '{}'", first));
+            .unwrap_or_else(|| panic!("Unable to parse manifest line: '{}'", first));
         // Step one, process the tag bit
         let (tag, distance) = if let Some(tcaps) =
             TAG_WITH_DISTANCE.captures(caps.get(1).expect("No tag captures?").as_str())
