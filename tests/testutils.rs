@@ -102,12 +102,7 @@ impl TestSentinel {
     }
 
     pub fn run_cmds(&self, cmds: &[(&str, &[&str])]) -> bool {
-        for (cmd, args) in cmds.iter() {
-            if self.run_cmd(cmd, args) == false {
-                return false;
-            }
-        }
-        true
+        cmds.iter().all(|(cmd, args)| self.run_cmd(cmd, args))
     }
 
     pub fn get_output(&self, cmd: &str, args: &[&str]) -> Option<String> {
