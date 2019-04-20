@@ -289,7 +289,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
         }
     };
 
-    let commit = if tag.len() > 0 {
+    let commit = if !tag.is_empty() {
         // We've a tag
         quote! {
             git_testament::CommitKind::FromTag(#tag, #commit_id, #commit_date, #steps)
