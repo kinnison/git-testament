@@ -97,7 +97,7 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
         }
     }
 
-    Err(format!("Somehow fell off the end of the commit data"))?
+    Err("Somehow fell off the end of the commit data")?
 }
 
 fn branch_name(dir: &Path) -> Result<Option<String>, Box<Error>> {
@@ -261,7 +261,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
         // Acquire the commit info
 
-        let commit_id = format!("{}", commit);
+        let commit_id = commit;
         let naive = NaiveDateTime::from_timestamp(commit_time, 0);
         let offset = FixedOffset::east(commit_offset * 60);
         let commit_time = DateTime::<FixedOffset>::from_utc(naive, offset);
