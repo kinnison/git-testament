@@ -13,7 +13,7 @@ use syn::parse;
 use syn::parse::{Parse, ParseStream};
 use syn::{parse_macro_input, Ident};
 
-use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime, Utc};
+use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime, TimeZone, Utc};
 
 use log::warn;
 
@@ -213,6 +213,14 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     let pkgver = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "?.?.?".to_owned());
     let now = Utc::now();
     let now = format!("{}", now.format("%Y-%m-%d"));
+    let sde = match env::var("SOURCE_DATE_EPOCH") {
+        Ok(sde) => match sde.parse::<i64>() {
+            Ok(sde) => Some(format!("{}", Utc.timestamp(sde, 0).format("%Y-%m-%d"))),
+            Err(_) => None,
+        },
+        Err(_) => None,
+    };
+    let now = sde.unwrap_or(now);
 
     let git_dir = match find_git_dir() {
         Ok(dir) => dir,
