@@ -1,6 +1,7 @@
 use lazy_static::lazy_static;
 use rand::{thread_rng, Rng};
 use regex::Regex;
+use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::process::{Command, Stdio};
@@ -8,6 +9,7 @@ use tempdir::TempDir;
 
 pub struct TestSentinel {
     dir: Option<TempDir>,
+    env: HashMap<String, String>,
     prog_name: String,
 }
 
@@ -80,17 +82,27 @@ pub fn prep_test(name: &str) -> TestSentinel {
     TestSentinel {
         dir: Some(outdir),
         prog_name: name,
+        env: HashMap::new(),
     }
 }
 
 impl TestSentinel {
+    pub fn setenv(&mut self, key: &str, value: &str) {
+        self.env.insert(key.to_owned(), value.to_owned());
+    }
+
     pub fn run_cmd(&self, cmd: &str, args: &[&str]) -> bool {
-        let mut child = Command::new(cmd)
-            .args(args)
-            .env(
-                "GIT_CEILING_DIRECTORIES",
-                self.dir.as_ref().unwrap().path().parent().unwrap(),
-            )
+        let mut child = Command::new(cmd);
+        child.args(args).env(
+            "GIT_CEILING_DIRECTORIES",
+            self.dir.as_ref().unwrap().path().parent().unwrap(),
+        );
+
+        for (key, value) in self.env.iter() {
+            child.env(key, value);
+        }
+
+        let mut child = child
             .current_dir(self.dir.as_ref().unwrap().path())
             .stdin(Stdio::null())
             .stdout(Stdio::null())
@@ -227,6 +239,8 @@ impl TestSentinel {
 
     pub fn assert_manifest_contains(&self, substr: &str) {
         let manifest = self.get_manifest().expect("Unable to retrieve manifest");
+        println!("Retrieved manifest: {:?}", manifest);
+        println!("Does it contain: {:?}", substr);
         assert!(manifest.find(substr) != None);
     }
 
