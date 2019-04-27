@@ -91,3 +91,22 @@ fn verify_trusted_branch() {
     assert!(test.run_cmd("cargo", &["build"]));
     test.assert_manifest_parts("1.0.0", 0, "TODO", None);
 }
+
+#[test]
+fn verify_source_date_epoch_no_repo() {
+    let mut test = testutils::prep_test("source-date-epoch-norepo");
+    test.setenv("SOURCE_DATE_EPOCH", "324086400");
+    assert!(test.run_cmd("cargo", &["build"]));
+    test.assert_manifest_contains("1.0.0");
+    test.assert_manifest_contains("1980-04-09");
+}
+
+#[test]
+fn verify_source_date_epoch_no_commit() {
+    let mut test = testutils::prep_test("source-date-epoch-nocommit");
+    assert!(test.run_cmd("git", &["init"]));
+    test.setenv("SOURCE_DATE_EPOCH", "324086400");
+    assert!(test.run_cmd("cargo", &["build"]));
+    test.assert_manifest_contains("1.0.0");
+    test.assert_manifest_contains("1980-04-09");
+}
