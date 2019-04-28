@@ -231,6 +231,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
                 e
             );
             return (quote! {
+                #[allow(clippy::needless_update)]
                 static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
                     commit: git_testament::CommitKind::NoRepository(#pkgver, #now),
                     .. git_testament::EMPTY_TESTAMENT
@@ -257,6 +258,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             Err(e) => {
                 warn!("No commit at HEAD: {}", e);
                 return (quote! {
+                #[allow(clippy::needless_update)]
                 static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
                     commit: git_testament::CommitKind::NoCommit(#pkgver, #now),
                     branch_name: #branch_name,
@@ -332,6 +334,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
         .collect();
 
     (quote! {
+        #[allow(clippy::needless_update)]
         static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
             commit: #commit,
             modifications: &[#(#statuses),*],
