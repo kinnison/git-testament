@@ -145,7 +145,7 @@ fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<Error>> {
         &[
             "status",
             "--porcelain",
-            "--untracked-files=all",
+            "--untracked-files=normal",
             "--ignore-submodules=all",
         ],
     )?)?;
