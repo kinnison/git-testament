@@ -2,7 +2,7 @@
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 name = "git-testament-derive"
-version = "0.1.6"
+version = "0.1.7"
 
 description = "Record git working tree status when compiling your crate - inner procedural macro"
 documentation = "https://docs.rs/git-testament/"
