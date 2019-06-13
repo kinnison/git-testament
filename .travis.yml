@@ -14,7 +14,7 @@ cache:
     - "$HOME/.rustup"
 
 before_cache:
-  - rm -rf "$HOME/.cargo/registry"
+  - rm -rf "$HOME/.cargo/registry/src"
 
 before_script:
   - rustfmt --help 2>/dev/null >/dev/null || rustup component add rustfmt
