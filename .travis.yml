@@ -8,7 +8,10 @@ matrix:
     - rust: nightly
   fast_finish: true
 
-cache: cargo
+cache:
+  cargo: true
+  directories:
+    - "$HOME/.rustup"
 
 before_script:
   - rustfmt --help 2>/dev/null >/dev/null || rustup component add rustfmt
