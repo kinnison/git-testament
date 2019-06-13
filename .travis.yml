@@ -12,7 +12,8 @@ cache:
   cargo: true
   directories:
     - "$HOME/.rustup"
-  edge: "joshk/reduce-compression"
+  edge:
+   branch: "joshk/reduce-compression"
 
 before_cache:
   - rm -rf "$HOME/.cargo/registry/src"
