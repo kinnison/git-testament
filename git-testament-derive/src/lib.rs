@@ -28,7 +28,7 @@ impl Parse for TestamentOptions {
     }
 }
 
-fn run_git<GD>(dir: GD, args: &[&str]) -> Result<Vec<u8>, Box<Error>>
+fn run_git<GD>(dir: GD, args: &[&str]) -> Result<Vec<u8>, Box<dyn Error>>
 where
     GD: AsRef<Path>,
 {
@@ -44,7 +44,7 @@ where
     }
 }
 
-fn find_git_dir() -> Result<PathBuf, Box<Error>> {
+fn find_git_dir() -> Result<PathBuf, Box<dyn Error>> {
     // run git rev-parse --show-toplevel in the MANIFEST DIR
     let dir = run_git(
         env::var("CARGO_MANIFEST_DIR").unwrap(),
@@ -55,7 +55,7 @@ fn find_git_dir() -> Result<PathBuf, Box<Error>> {
     Ok(String::from_utf8(dir)?.trim_end().into())
 }
 
-fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), Box<Error>> {
+fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), Box<dyn Error>> {
     // TODO: Again, try and remove UTF8 assumptions somehow
     let sha = String::from_utf8(run_git(git_dir, &["rev-parse", refname])?)?
         .trim_end()
@@ -100,7 +100,7 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
     Err("Somehow fell off the end of the commit data")?
 }
 
-fn branch_name(dir: &Path) -> Result<Option<String>, Box<Error>> {
+fn branch_name(dir: &Path) -> Result<Option<String>, Box<dyn Error>> {
     let symref = match run_git(dir, &["symbolic-ref", "-q", "HEAD"]) {
         Ok(s) => s,
         Err(_) => run_git(dir, &["name-rev", "--name-only", "HEAD"])?,
@@ -116,7 +116,7 @@ fn branch_name(dir: &Path) -> Result<Option<String>, Box<Error>> {
     }
 }
 
-fn describe(dir: &Path, sha: &str) -> Result<String, Box<Error>> {
+fn describe(dir: &Path, sha: &str) -> Result<String, Box<dyn Error>> {
     // TODO: Work out a way to not use UTF8?
     Ok(
         String::from_utf8(run_git(dir, &["describe", "--tags", "--long", sha])?)?
@@ -138,7 +138,7 @@ struct StatusEntry {
     status: StatusFlag,
 }
 
-fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<Error>> {
+fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<dyn Error>> {
     // TODO: Work out a way to not use UTF8?
     let info = String::from_utf8(run_git(
         dir,
