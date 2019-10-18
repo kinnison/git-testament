@@ -26,6 +26,7 @@ pub struct ManifestParts {
     tag: String,
     distance: usize,
     commit: String,
+    #[allow(dead_code)]
     date: String,
     dirty: Option<usize>,
 }
@@ -115,6 +116,7 @@ impl TestSentinel {
         ecode.success()
     }
 
+    #[allow(dead_code)]
     pub fn run_cmds(&self, cmds: &[(&str, &[&str])]) -> bool {
         cmds.iter().all(|(cmd, args)| self.run_cmd(cmd, args))
     }
@@ -204,6 +206,7 @@ impl TestSentinel {
         }
     }
 
+    #[allow(dead_code)]
     pub fn assert_manifest_exact(&self, manifest: &str) {
         let output = self
             .get_manifest()
