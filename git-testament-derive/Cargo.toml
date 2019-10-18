@@ -15,8 +15,8 @@ maintenance = { status = "experimental" }
 travis-ci = { repository = "kinnison/git-testament", branch="master" }
 
 [dependencies]
-syn = "0.15"
-quote = "0.6"
+syn = "1.0"
+quote = "1.0"
 chrono = "0.4"
 log = "0.4"
 
