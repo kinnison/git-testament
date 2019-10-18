@@ -40,7 +40,7 @@ where
     if output.status.success() {
         Ok(output.stdout)
     } else {
-        Err(String::from_utf8(output.stderr)?)?
+        Err(String::from_utf8(output.stderr)?.into())
     }
 }
 
@@ -66,15 +66,14 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
         if line.starts_with("committer ") {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() < 2 {
-                Err(format!("Insufficient committer data in {}", line))?
+                return Err(format!("Insufficient committer data in {}", line).into());
             }
             let time: i64 = parts[parts.len() - 2].parse()?;
             let offset: &str = parts[parts.len() - 1];
             if offset.len() != 5 {
-                Err(format!(
-                    "Insufficient/Incorrect data in timezone offset: {}",
-                    offset
-                ))?
+                return Err(
+                    format!("Insufficient/Incorrect data in timezone offset: {}", offset).into(),
+                );
             }
             let offset: i32 = if offset.starts_with('-') {
                 // Negative...
@@ -90,14 +89,11 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
             return Ok((sha, time, offset));
         } else if line.is_empty() {
             // Ran out of input, without finding committer
-            Err(format!(
-                "Unable to find committer information in {}",
-                refname
-            ))?
+            return Err(format!("Unable to find committer information in {}", refname).into());
         }
     }
 
-    Err("Somehow fell off the end of the commit data")?
+    Err("Somehow fell off the end of the commit data".into())
 }
 
 fn branch_name(dir: &Path) -> Result<Option<String>, Box<dyn Error>> {
