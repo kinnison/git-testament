@@ -175,6 +175,9 @@ fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<dyn Error>> {
     Ok(ret)
 }
 
+// Clippy thinks our fn main() is needless, but it is needed because otherwise
+// we cannot have the invocation of the procedural macro (yet)
+#[allow(clippy::needless_doctest_main)]
 /// Generate a testament for the working tree.
 ///
 /// This macro declares a static data structure which represents a testament
