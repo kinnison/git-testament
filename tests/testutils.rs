@@ -74,6 +74,11 @@ pub fn prep_test(name: &str) -> TestSentinel {
         ),
     )
     .expect("Unable to write Cargo.toml for test");
+    println!(
+        "Wrote test Cargo.toml:\n{}",
+        fs::read_to_string(outdir.path().join("Cargo.toml"))
+            .expect("Cannot re-read Cargo.toml for test")
+    );
     fs::create_dir(outdir.path().join(".cargo")).expect("Unable to make .cargo/");
     fs::write(
         outdir.path().join(".cargo/config"),
