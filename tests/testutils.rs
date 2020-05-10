@@ -51,6 +51,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
         .map(|_| rng.sample(rand::distributions::Alphanumeric))
         .collect::<String>();
     name.make_ascii_lowercase();
+    let name = format!("gtt-{}", name);
 
     // Copy the contents of the test template in
     fs::create_dir(outdir.path().join("src")).expect("Unable to make src/ dir");
