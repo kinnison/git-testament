@@ -2,7 +2,7 @@
 //!
 use std::fmt::{self, Display, Formatter};
 
-pub use git_testament_derive::git_testament;
+pub use git_testament_derive::{git_testament, git_testament_macros};
 
 /// A modification to a working tree, recorded when the testament was created.
 #[derive(Debug)]
