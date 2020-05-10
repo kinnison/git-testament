@@ -1,10 +1,17 @@
-use git_testament::git_testament;
+use git_testament::{git_testament, git_testament_macros};
 
 git_testament!(TESTAMENT);
+
+git_testament_macros!(version);
 
 #[test]
 fn it_works() {
     println!("Testament: {}", TESTAMENT);
+}
+
+#[test]
+fn macros_work() {
+    assert_eq!(format!("{}", TESTAMENT), version_testament!());
 }
 
 mod testutils;
