@@ -1,6 +1,6 @@
 [package]
 name = "git-testament"
-version = "0.1.7"
+version = "0.1.9"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 
@@ -20,7 +20,7 @@ members = [
 ]
 
 [dependencies]
-git-testament-derive = { version = "0.1", path = "git-testament-derive" }
+git-testament-derive = { version = "0.1.9", path = "git-testament-derive" }
 
 [dev-dependencies]
 tempdir = "0.3.7"
