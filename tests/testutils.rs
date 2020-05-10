@@ -105,15 +105,18 @@ impl TestSentinel {
             child.env(key, value);
         }
 
-        let mut child = child
+        let child = child
             .current_dir(self.dir.as_ref().unwrap().path())
             .stdin(Stdio::null())
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .spawn()
+            .output()
             .expect("Unable to run subcommand");
-        let ecode = child.wait().expect("Unable to wait for child");
-        ecode.success()
+        if !child.status.success() {
+            println!("Failed to run {} {:?}", cmd, args);
+            println!("Status was: {:?}", child.status.code());
+            println!("Stdout was:\n{:?}", String::from_utf8(child.stdout));
+            println!("Stderr was:\n{:?}", String::from_utf8(child.stderr));
+        }
+        child.status.success()
     }
 
     #[allow(dead_code)]
