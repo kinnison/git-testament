@@ -475,7 +475,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 /// // macro names.  Also you can optionally specify
 /// // a branch name which will be considered the "trusted" branch like in
 /// // `git_testament::render_testament!()`
-/// git_testament_macros!(version);
+/// git_testament_macros!(version, "stable");
 ///
 /// const APP_VERSION: &str = concat!("app version ", version_testament!());
 /// # fn main() {
