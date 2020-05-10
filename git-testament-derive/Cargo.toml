@@ -19,6 +19,7 @@ syn = "1.0"
 quote = "1.0"
 chrono = "0.4"
 log = "0.4"
+proc-macro2 = "1"
 
 [dev-dependencies]
 git-testament = { version="0.1", path = ".." }

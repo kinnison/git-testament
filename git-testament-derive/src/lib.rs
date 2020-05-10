@@ -8,10 +8,12 @@ use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 use proc_macro::TokenStream;
+use proc_macro2::Span;
 use quote::quote;
 use syn::parse;
 use syn::parse::{Parse, ParseStream};
-use syn::{parse_macro_input, Ident};
+use syn::token::Comma;
+use syn::{parse_macro_input, Ident, LitStr, Token};
 
 use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime, TimeZone, Utc};
 
@@ -25,6 +27,25 @@ impl Parse for TestamentOptions {
     fn parse(input: ParseStream) -> parse::Result<Self> {
         let name: Ident = input.parse()?;
         Ok(TestamentOptions { name })
+    }
+}
+
+struct StaticTestamentOptions {
+    name: Ident,
+    trusted: Option<String>,
+}
+
+impl Parse for StaticTestamentOptions {
+    fn parse(input: ParseStream) -> parse::Result<Self> {
+        let name: Ident = input.parse()?;
+        let trusted = if input.peek(Token![,]) {
+            input.parse::<Comma>()?;
+            let t: LitStr = input.parse()?;
+            Some(t.value())
+        } else {
+            None
+        };
+        Ok(StaticTestamentOptions { name, trusted })
     }
 }
 
@@ -121,6 +142,7 @@ fn describe(dir: &Path, sha: &str) -> Result<String, Box<dyn Error>> {
     )
 }
 
+#[derive(Clone, Copy)]
 enum StatusFlag {
     Added,
     Deleted,
@@ -129,6 +151,7 @@ enum StatusFlag {
 }
 use StatusFlag::*;
 
+#[derive(Clone)]
 struct StatusEntry {
     path: String,
     status: StatusFlag,
@@ -401,4 +424,250 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
         };
     })
     .into()
+}
+
+// Clippy thinks our fn main() is needless, but it is needed because otherwise
+// we cannot have the invocation of the procedural macro (yet)
+#[allow(clippy::needless_doctest_main)]
+/// Generate a testament for the working tree as a set of static string macros.
+///
+/// This macro declares a set of macros which provide you with your testament
+/// as static strings.
+///
+/// The intention is that the macro should be used at the top level of a binary
+/// crate to provide information about the state of the codebase that the output
+/// program was built from.  This includes a number of things such as the commit
+/// SHA, any related tag, how many commits since the tag, the date of the commit,
+/// and if there are any "dirty" parts to the working tree such as modified files,
+/// uncommitted files, etc.
+///
+/// ```
+/// // Bring the procedural macro into scope
+/// use git_testament::git_testament_macros;
+///
+/// // Declare a testament, it'll end up as pile of macros, so you can
+/// // give it whatever ident-like name you want.  The name will prefix the
+/// // macro names.  Also you can optionally specify
+/// // a branch name which will be considered the "trusted" branch like in
+/// // `git_testament::render_testament!()`
+/// git_testament_macros!(version);
+/// # fn main() {
+///
+/// // ... later, you can display the testament.
+/// println!("app version {}", version_testament!());
+/// # }
+/// ```
+///
+/// The macros all resolve to string literals, boolean literals, or in the case
+/// of `NAME_tag_distance!()` a number.  This is most valuable when you are
+/// wanting to include the information into a compile-time-constructed string
+///
+/// ```
+/// // Bring the procedural macro into scope
+/// use git_testament::git_testament_macros;
+///
+/// // Declare a testament, it'll end up as pile of macros, so you can
+/// // give it whatever ident-like name you want.  The name will prefix the
+/// // macro names.  Also you can optionally specify
+/// // a branch name which will be considered the "trusted" branch like in
+/// // `git_testament::render_testament!()`
+/// git_testament_macros!(version);
+///
+/// const APP_VERSION: &str = concat!("app version ", version_testament!());
+/// # fn main() {
+///
+/// // ... later, you can display the testament.
+/// println!("{}", APP_VERSION);
+/// # }
+/// ```
+///
+/// The set of macros defined is:
+///
+/// * `NAME_testament!()` -> produces a string similar but not guaranteed to be
+///   identical to the result of `Display` formatting a normal testament.
+/// * `NAME_branch!()` -> An Option<&str> of the current branch name
+/// * `NAME_repo_present!()` -> A boolean indicating if there is a repo at all
+/// * `NAME_commit_present!()` -> A boolean indicating if there is a commit present at all
+/// * `NAME_tag_present!()` -> A boolean indicating if there is a tag present
+/// * `NAME_commit_hash!()` -> A string of the commit hash (or crate version if commit not present)
+/// * `NAME_commit_date!()` -> A string of the commit date (or build date if no commit present)
+/// * `NAME_tag_name!()` -> The tag name if present (or crate version if commit not present)
+/// * `NAME_tag_distance!()` -> The number of commits since the tag if present (zero otherwise)
+#[proc_macro]
+pub fn git_testament_macros(input: TokenStream) -> TokenStream {
+    let StaticTestamentOptions { name, trusted } =
+        parse_macro_input!(input as StaticTestamentOptions);
+    let sname = format!("{}", name);
+    let (pkgver, now, gitinfo, macros) = macro_content(&sname);
+
+    // Render the testament string
+    let testament = if let Some(gitinfo) = gitinfo {
+        let commitstr = if let Some(ref commitinfo) = gitinfo.commitinfo {
+            if commitinfo.tag.is_empty() {
+                // No tag
+                format!("unknown ({} {})", &commitinfo.id[..9], commitinfo.date)
+            } else {
+                let trusted = if gitinfo.branch == trusted {
+                    gitinfo.status.is_empty()
+                } else {
+                    false
+                };
+                // Full behaviour
+                if trusted {
+                    format!("{} ({} {})", pkgver, &commitinfo.id[..9], commitinfo.date)
+                } else {
+                    let basis = if commitinfo.distance > 0 {
+                        format!(
+                            "{}+{} ({} {})",
+                            commitinfo.tag,
+                            commitinfo.distance,
+                            &commitinfo.id[..9],
+                            commitinfo.date
+                        )
+                    } else {
+                        // Not dirty
+                        format!(
+                            "{} ({} {})",
+                            commitinfo.tag,
+                            &commitinfo.id[..9],
+                            commitinfo.date
+                        )
+                    };
+                    if commitinfo.tag.find(&pkgver).is_some() {
+                        basis
+                    } else {
+                        format!("{} :: {}", pkgver, basis)
+                    }
+                }
+            }
+        } else {
+            // We're in a repo, but with no commit
+            format!("{} (uncommitted {})", pkgver, now)
+        };
+        if gitinfo.status.is_empty() {
+            commitstr
+        } else {
+            format!(
+                "{} dirty {} modification{}",
+                commitstr,
+                gitinfo.status.len(),
+                if gitinfo.status.len() == 1 { "" } else { "s" }
+            )
+        }
+    } else {
+        // No git information whatsoever
+        format!("{} ({})", pkgver, now)
+    };
+
+    let mac_testament = concat_ident(&sname, "testament");
+
+    (quote! {
+            #macros
+            macro_rules! #mac_testament { () => {#testament}}
+    })
+    .into()
+}
+
+fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl quote::ToTokens) {
+    let InvocationInformation { pkgver, now } = InvocationInformation::acquire();
+    let mac_branch = concat_ident(prefix, "branch");
+    let mac_repo_present = concat_ident(prefix, "repo_present");
+    let mac_commit_present = concat_ident(prefix, "commit_present");
+    let mac_tag_present = concat_ident(prefix, "tag_present");
+    let mac_commit_hash = concat_ident(prefix, "commit_hash");
+    let mac_commit_date = concat_ident(prefix, "commit_date");
+    let mac_tag_name = concat_ident(prefix, "tag_name");
+    let mac_tag_distance = concat_ident(prefix, "tag_distance");
+    let gitinfo = match GitInformation::acquire() {
+        Ok(gi) => gi,
+        Err(e) => {
+            warn!(
+                "Unable to open a repo at {}: {}",
+                env::var("CARGO_MANIFEST_DIR").unwrap(),
+                e
+            );
+            return (
+                pkgver.clone(),
+                now.clone(),
+                None,
+                quote! {
+                    macro_rules! #mac_branch { () => {None}}
+                    macro_rules! #mac_repo_present { () => {false}}
+                    macro_rules! #mac_commit_present { () => {false}}
+                    macro_rules! #mac_tag_present { () => {false}}
+                    macro_rules! #mac_commit_hash { () => {#pkgver}}
+                    macro_rules! #mac_commit_date { () => {#now}}
+                    macro_rules! #mac_tag_name { () => {#pkgver}}
+                    macro_rules! #mac_tag_distance { () => {0}}
+                },
+            );
+        }
+    };
+
+    let branch_name = {
+        if let Some(ref branch) = gitinfo.branch {
+            quote! {Some(#branch)}
+        } else {
+            quote! {None}
+        }
+    };
+
+    let basics = quote! {
+        macro_rules! #mac_repo_present { () => {true}}
+        macro_rules! #mac_branch { () => {#branch_name}}
+    };
+
+    // Step one, determine the current commit ID and the date of that commit
+    if gitinfo.commitinfo.is_none() {
+        return (
+            pkgver.clone(),
+            now.clone(),
+            Some(gitinfo),
+            quote! {
+                #basics
+                macro_rules! #mac_commit_present { () => {false}}
+                macro_rules! #mac_tag_present { () => {false}}
+                macro_rules! #mac_commit_hash { () => {#pkgver}}
+                macro_rules! #mac_commit_date { () => {#now}}
+                macro_rules! #mac_tag_name { () => {#pkgver}}
+                macro_rules! #mac_tag_distance { () => {0}}
+            },
+        );
+    }
+
+    let commitinfo = gitinfo.commitinfo.as_ref().unwrap();
+    let (commit_hash, commit_date) = (&commitinfo.id, &commitinfo.date);
+    let (tag, distance) = (&commitinfo.tag, commitinfo.distance);
+
+    let basics = quote! {
+        #basics
+        macro_rules! #mac_commit_present { () => {true}}
+        macro_rules! #mac_commit_hash { () => {#commit_hash}}
+        macro_rules! #mac_commit_date { () => {#commit_date}}
+    };
+
+    (
+        pkgver.clone(),
+        now,
+        Some(gitinfo.clone()),
+        if commitinfo.tag.is_empty() {
+            quote! {
+                #basics
+                macro_rules! #mac_tag_present { () => {false}}
+                macro_rules! #mac_tag_name { () => {#pkgver}}
+                macro_rules! #mac_tag_distance { () => {0}}
+            }
+        } else {
+            quote! {
+                #basics
+                macro_rules! #mac_tag_present { () => {true}}
+                macro_rules! #mac_tag_name { () => {#tag}}
+                macro_rules! #mac_tag_distance { () => {#distance}}
+            }
+        },
+    )
+}
+
+fn concat_ident(prefix: &str, suffix: &str) -> Ident {
+    Ident::new(&format!("{}_{}", prefix, suffix), Span::call_site())
 }
