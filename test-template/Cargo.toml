@@ -6,4 +6,7 @@ edition = "2018"
 
 [workspace]
 
+[features]
+no-std = [ "git-testament/no-std" ]
+
 [dependencies]
