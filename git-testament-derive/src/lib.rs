@@ -175,6 +175,103 @@ fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<dyn Error>> {
     Ok(ret)
 }
 
+struct InvocationInformation {
+    pkgver: String,
+    now: String,
+}
+
+impl InvocationInformation {
+    fn acquire() -> Self {
+        let pkgver = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "?.?.?".to_owned());
+        let now = Utc::now();
+        let now = format!("{}", now.format("%Y-%m-%d"));
+        let sde = match env::var("SOURCE_DATE_EPOCH") {
+            Ok(sde) => match sde.parse::<i64>() {
+                Ok(sde) => Some(format!("{}", Utc.timestamp(sde, 0).format("%Y-%m-%d"))),
+                Err(_) => None,
+            },
+            Err(_) => None,
+        };
+        let now = sde.unwrap_or(now);
+
+        Self { pkgver, now }
+    }
+}
+
+#[derive(Clone)]
+struct CommitInfo {
+    id: String,
+    date: String,
+    tag: String,
+    distance: usize,
+}
+
+#[derive(Clone)]
+struct GitInformation {
+    branch: Option<String>,
+    commitinfo: Option<CommitInfo>,
+    status: Vec<StatusEntry>,
+}
+
+impl GitInformation {
+    fn acquire() -> Result<Self, Box<dyn std::error::Error>> {
+        let git_dir = find_git_dir()?;
+        let branch = match branch_name(&git_dir) {
+            Ok(b) => b,
+            Err(e) => {
+                warn!("Unable to determine branch name: {}", e);
+                None
+            }
+        };
+
+        let commitinfo = (|| {
+            let (commit, commit_time, commit_offset) = match revparse_single(&git_dir, "HEAD") {
+                Ok(commit_data) => commit_data,
+                Err(e) => {
+                    warn!("No commit at HEAD: {}", e);
+                    return None;
+                }
+            };
+            // Acquire the commit info
+            let commit_id = commit;
+            let naive = NaiveDateTime::from_timestamp(commit_time, 0);
+            let offset = FixedOffset::east(commit_offset * 60);
+            let commit_time = DateTime::<FixedOffset>::from_utc(naive, offset);
+            let commit_date = format!("{}", commit_time.format("%Y-%m-%d"));
+
+            let (tag, distance) = match describe(&git_dir, &commit_id) {
+                Ok(res) => {
+                    let res = &res[..res.rfind('-').expect("No commit info in describe!")];
+                    let tag_name = &res[..res.rfind('-').expect("No commit count in describe!")];
+                    let commit_count = res[tag_name.len() + 1..]
+                        .parse::<usize>()
+                        .expect("Unable to parse commit count in describe!");
+                    (tag_name.to_owned(), commit_count)
+                }
+                Err(e) => {
+                    warn!("No tag info found!\n{:?}", e);
+                    ("".to_owned(), 0)
+                }
+            };
+
+            Some(CommitInfo {
+                id: commit_id,
+                date: commit_date,
+                tag,
+                distance,
+            })
+        })();
+
+        let status = status(&git_dir).expect("Unable to generate status information");
+
+        Ok(Self {
+            branch,
+            commitinfo,
+            status,
+        })
+    }
+}
+
 // Clippy thinks our fn main() is needless, but it is needed because otherwise
 // we cannot have the invocation of the procedural macro (yet)
 #[allow(clippy::needless_doctest_main)]
@@ -209,20 +306,9 @@ fn status(dir: &Path) -> Result<Vec<StatusEntry>, Box<dyn Error>> {
 pub fn git_testament(input: TokenStream) -> TokenStream {
     let TestamentOptions { name } = parse_macro_input!(input as TestamentOptions);
 
-    let pkgver = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "?.?.?".to_owned());
-    let now = Utc::now();
-    let now = format!("{}", now.format("%Y-%m-%d"));
-    let sde = match env::var("SOURCE_DATE_EPOCH") {
-        Ok(sde) => match sde.parse::<i64>() {
-            Ok(sde) => Some(format!("{}", Utc.timestamp(sde, 0).format("%Y-%m-%d"))),
-            Err(_) => None,
-        },
-        Err(_) => None,
-    };
-    let now = sde.unwrap_or(now);
-
-    let git_dir = match find_git_dir() {
-        Ok(dir) => dir,
+    let InvocationInformation { pkgver, now } = InvocationInformation::acquire();
+    let gitinfo = match GitInformation::acquire() {
+        Ok(gi) => gi,
         Err(e) => {
             warn!(
                 "Unable to open a repo at {}: {}",
@@ -241,80 +327,53 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     };
 
     // Second simple preliminary step: attempt to get a branch name to report
-    let branch_name = match branch_name(&git_dir) {
-        Ok(Some(name)) => quote! {Some(#name)},
-        Ok(None) => quote! {None},
-        Err(e) => {
-            warn!("Unable to determine branch name: {}", e);
+    let branch_name = {
+        if let Some(branch) = gitinfo.branch {
+            quote! {Some(#branch)}
+        } else {
             quote! {None}
         }
     };
 
     // Step one, determine the current commit ID and the date of that commit
-    let (commit_id, commit_date) = {
-        let (commit, commit_time, commit_offset) = match revparse_single(&git_dir, "HEAD") {
-            Ok(commit_data) => commit_data,
-            Err(e) => {
-                warn!("No commit at HEAD: {}", e);
-                return (quote! {
-                #[allow(clippy::needless_update)]
-                static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
-                    commit: git_testament::CommitKind::NoCommit(#pkgver, #now),
-                    branch_name: #branch_name,
-                    .. git_testament::EMPTY_TESTAMENT
-                };
-            })
-            .into();
-            }
-        };
+    if gitinfo.commitinfo.is_none() {
+        return (quote! {
+            #[allow(clippy::needless_update)]
+            static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
+                commit: git_testament::CommitKind::NoCommit(#pkgver, #now),
+                branch_name: #branch_name,
+                .. git_testament::EMPTY_TESTAMENT
+            };
+        })
+        .into();
+    }
 
-        // Acquire the commit info
+    let commitinfo = gitinfo.commitinfo.as_ref().unwrap();
 
-        let commit_id = commit;
-        let naive = NaiveDateTime::from_timestamp(commit_time, 0);
-        let offset = FixedOffset::east(commit_offset * 60);
-        let commit_time = DateTime::<FixedOffset>::from_utc(naive, offset);
-        let commit_date = format!("{}", commit_time.format("%Y-%m-%d"));
-
-        (commit_id, commit_date)
-    };
-
-    // Next determine if there was a tag, and if so, what our relationship
-    // to that tag is...
-
-    let (tag, steps) = match describe(&git_dir, &commit_id) {
-        Ok(res) => {
-            let res = &res[..res.rfind('-').expect("No commit info in describe!")];
-            let tag_name = &res[..res.rfind('-').expect("No commit count in describe!")];
-            let commit_count = res[tag_name.len() + 1..]
-                .parse::<usize>()
-                .expect("Unable to parse commit count in describe!");
-
-            (tag_name.to_owned(), commit_count)
-        }
-        Err(_) => {
-            warn!("No tag info found!");
-            ("".to_owned(), 0)
-        }
-    };
-
-    let commit = if !tag.is_empty() {
+    let commit = if !commitinfo.tag.is_empty() {
         // We've a tag
+        let (tag, id, date, distance) = (
+            &commitinfo.tag,
+            &commitinfo.id,
+            &commitinfo.date,
+            commitinfo.distance,
+        );
         quote! {
-            git_testament::CommitKind::FromTag(#tag, #commit_id, #commit_date, #steps)
+            git_testament::CommitKind::FromTag(#tag, #id, #date, #distance)
         }
     } else {
+        let (id, date) = (&commitinfo.id, &commitinfo.date);
         quote! {
-            git_testament::CommitKind::NoTags(#commit_id, #commit_date)
+            git_testament::CommitKind::NoTags(#id, #date)
         }
     };
 
     // Finally, we need to gather the modifications to the tree...
-    let statuses: Vec<_> = status(&git_dir)
-        .expect("Unable to generate status information for working tree!")
-        .into_iter()
+    let statuses: Vec<_> = gitinfo
+        .status
+        .iter()
         .map(|status| {
-            let path = status.path.into_bytes();
+            let path = status.path.clone().into_bytes();
             match status.status {
                 Untracked => quote! {
                     git_testament::GitModification::Untracked(&[#(#path),*])
