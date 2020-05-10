@@ -70,7 +70,9 @@ pub fn prep_test(name: &str) -> TestSentinel {
         format!(
             "{}\ngit-testament = {{ path=\"{}\" }}\n",
             toml,
-            env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned())
+            env::var("CARGO_MANIFEST_DIR")
+                .unwrap_or_else(|_| ".".to_owned())
+                .replace("\\", "\\\\")
         ),
     )
     .expect("Unable to write Cargo.toml for test");
@@ -84,7 +86,9 @@ pub fn prep_test(name: &str) -> TestSentinel {
         outdir.path().join(".cargo/config"),
         format!(
             "[build]\ntarget-dir=\"{}/target\"",
-            env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| "..".to_owned())
+            env::var("CARGO_MANIFEST_DIR")
+                .unwrap_or_else(|_| "..".to_owned())
+                .replace("\\", "\\\\")
         ),
     )
     .expect("Unable to write .cargo/config");
