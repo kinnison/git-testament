@@ -1,11 +1,24 @@
 //! # Generate a testament of the git working tree state for a build
 //!
+//! You likely want to see either the [git_testament] macro, or if you
+//! are in a no-std type situation, the [git_testament_macros] macro instead.
+//!
+//! [git_testament]: macro.git_testament.html
+//! [git_testament_macros]: macro.git_testament_macros.html
+//!
+//! If you build this library with the `no-std` feature enabled then while
+//! the non-macro form of the testaments are offered, they cannot be rendered
+//! and the [render_testament] macro will not be provided.
+//!
+//! [render_testament]: macro.render_testament.html
+
+#[cfg(not(feature = "no-std"))]
 use std::fmt::{self, Display, Formatter};
 
 pub use git_testament_derive::{git_testament, git_testament_macros};
 
 /// A modification to a working tree, recorded when the testament was created.
-#[derive(Debug)]
+#[cfg_attr(not(feature = "no-std"), derive(Debug))]
 pub enum GitModification<'a> {
     /// A file or directory was added but not committed
     Added(&'a [u8]),
@@ -18,7 +31,7 @@ pub enum GitModification<'a> {
 }
 
 /// The kind of commit available at the point that the testament was created.
-#[derive(Debug)]
+#[cfg_attr(not(feature = "no-std"), derive(Debug))]
 pub enum CommitKind<'a> {
     /// No repository was present.  Instead the crate's version and the
     /// build date are recorded.
@@ -64,7 +77,7 @@ pub enum CommitKind<'a> {
 /// when you first have run `cargo init`) though that will include the string
 /// `uncommitted` to indicate that once commits are made the information will be
 /// of more use.
-#[derive(Debug)]
+#[cfg_attr(not(feature = "no-std"), derive(Debug))]
 pub struct GitTestament<'a> {
     pub commit: CommitKind<'a>,
     pub modifications: &'a [GitModification<'a>],
@@ -84,6 +97,7 @@ pub const EMPTY_TESTAMENT: GitTestament = GitTestament {
     branch_name: None,
 };
 
+#[cfg(not(feature = "no-std"))]
 impl<'a> GitTestament<'a> {
     #[doc(hidden)]
     pub fn _render_with_version(
@@ -149,6 +163,7 @@ impl<'a> GitTestament<'a> {
 /// println!("The testament is: {}", render_testament!(TESTAMENT));
 /// println!("The fiddled testament is: {}", render_testament!(TESTAMENT, "trusted-branch"));
 /// # }
+#[cfg(not(feature = "no-std"))]
 #[macro_export]
 macro_rules! render_testament {
     ( $testament:expr ) => {
@@ -159,6 +174,7 @@ macro_rules! render_testament {
     };
 }
 
+#[cfg(not(feature = "no-std"))]
 impl<'a> Display for CommitKind<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
@@ -188,6 +204,7 @@ impl<'a> Display for CommitKind<'a> {
     }
 }
 
+#[cfg(not(feature = "no-std"))]
 impl<'a> Display for GitTestament<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         self.commit.fmt(fmt)?;

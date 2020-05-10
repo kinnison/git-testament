@@ -27,3 +27,7 @@ tempdir = "0.3.7"
 rand = "0.7"
 regex = "1"
 lazy_static = "1"
+
+[features]
+default = []
+no-std = []
