@@ -84,7 +84,7 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
                 // Positive...
                 let hours: i32 = offset[1..=2].parse()?;
                 let mins: i32 = offset[3..=4].parse()?;
-                (mins + (hours * 60))
+                mins + (hours * 60)
             };
             return Ok((sha, time, offset));
         } else if line.is_empty() {
