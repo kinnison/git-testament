@@ -285,7 +285,11 @@ impl GitInformation {
             })
         })();
 
-        let status = status(&git_dir).expect("Unable to generate status information");
+        let status = if commitinfo.is_some() {
+            status(&git_dir).expect("Unable to generate status information")
+        } else {
+            vec![]
+        };
 
         Ok(Self {
             branch,
