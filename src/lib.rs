@@ -11,6 +11,17 @@
 //! and the [render_testament] macro will not be provided.
 //!
 //! [render_testament]: macro.render_testament.html
+//!
+//! ## Trusted branches
+//!
+//! In both [render_testament] and [git_testament_macros] you will find mention
+//! of the concept of a "trusted" branch.  This exists as a way to allow releases
+//! to be made from branches which are not yet tagged.  For example, if your
+//! release process requires that the release binaries be built and tested
+//! before tagging the repository then by nominating a particular branch as
+//! trusted, you can cause the rendered testament to trust the crate's version
+//! rather than being quite noisy about how the crate version and the tag
+//! version do not match up.
 
 #[cfg(not(feature = "no-std"))]
 use std::fmt::{self, Display, Formatter};
