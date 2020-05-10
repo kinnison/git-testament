@@ -1,0 +1,121 @@
+name: "main"
+
+on:
+  pull_request:
+    branches:
+      - "*"
+  push:
+    branches:
+      - "*"
+
+jobs:
+  hygiene:
+    name: Hygiene
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        toolchain: [stable, beta, nightly]
+        include:
+          - os: macos-latest
+            toolchain: stable
+          - os: windows-latest
+            toolchain: stable
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Acquire source code
+        uses: actions/checkout@v2
+      - name: Acquire Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+          profile: minimal
+          components: rustfmt, clippy
+        id: toolchain
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: checks-${{ runner.os }}-cargo-registry-trimmed
+      - name: Cache cargo git trees
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: checks-${{ runner.os }}-cargo-gits-trimmed
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: checks-${{ runner.os }}-cargo-target-dir-${{ steps.toolchain.outputs.rustc_hash }}
+      - name: "Run clippy"
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --all --tests -- -D clippy::all -D warnings
+      - name: "Run formatting check"
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --all -- --check
+
+  build:
+    name: "Build/Test"
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        toolchain: [nightly, beta, stable]
+        include:
+          - os: macos-latest
+            toolchain: stable
+          - os: windows-latest
+            toolchain: stable
+
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: Acquire source code
+        uses: actions/checkout@v2
+      - name: Acquire Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: ${{ matrix.toolchain }}
+          override: true
+          profile: minimal
+        id: toolchain
+      - name: Cache cargo registry
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/registry
+          key: checks-${{ runner.os }}-cargo-registry-trimmed
+      - name: Cache cargo git trees
+        uses: actions/cache@v1
+        with:
+          path: ~/.cargo/git
+          key: checks-${{ runner.os }}-cargo-gits-trimmed
+      - name: Cache cargo build
+        uses: actions/cache@v1
+        with:
+          path: target
+          key: checks-${{ runner.os }}-cargo-target-dir-${{ steps.toolchain.outputs.rustc_hash }}
+      - name: "Set backtraces on"
+        run: echo "::set-env name=RUST_BACKTRACE::1"
+      - name: "Run build"
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --all
+      - name: "Run tests"
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all
