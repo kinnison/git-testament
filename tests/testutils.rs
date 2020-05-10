@@ -119,9 +119,20 @@ impl TestSentinel {
         child.status.success()
     }
 
-    #[allow(dead_code)]
     pub fn run_cmds(&self, cmds: &[(&str, &[&str])]) -> bool {
         cmds.iter().all(|(cmd, args)| self.run_cmd(cmd, args))
+    }
+
+    pub fn basic_git_init(&self) -> bool {
+        self.run_cmds(&[
+            ("git", &["init"]),
+            ("git", &["config", "user.name", "Git Testament Test Suite"]),
+            (
+                "git",
+                &["config", "user.email", "git.testament@digital-scurf.org"],
+            ),
+            ("git", &["config", "commit.gpgsign", "false"]),
+        ])
     }
 
     pub fn get_output(&self, cmd: &str, args: &[&str]) -> Option<String> {

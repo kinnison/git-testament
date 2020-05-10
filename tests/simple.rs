@@ -19,7 +19,7 @@ fn verify_builds_ok() {
 #[test]
 fn verify_no_commit() {
     let test = testutils::prep_test("no-commit");
-    assert!(test.run_cmd("git", &["init"]));
+    assert!(test.basic_git_init());
     assert!(test.run_cmd("cargo", &["build"]));
     test.assert_manifest_contains("uncommitted");
 }
@@ -27,7 +27,7 @@ fn verify_no_commit() {
 #[test]
 fn verify_no_changes_no_tags() {
     let test = testutils::prep_test("no-changes");
-    assert!(test.run_cmd("git", &["init"]));
+    assert!(test.basic_git_init());
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
@@ -38,7 +38,7 @@ fn verify_no_changes_no_tags() {
 #[test]
 fn verify_no_changes_with_a_tag() {
     let test = testutils::prep_test("no-changes-with-tag");
-    assert!(test.run_cmd("git", &["init"]));
+    assert!(test.basic_git_init());
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
@@ -50,7 +50,7 @@ fn verify_no_changes_with_a_tag() {
 #[test]
 fn verify_dirty_changes_with_a_tag() {
     let test = testutils::prep_test("dirty-with-tag");
-    assert!(test.run_cmd("git", &["init"]));
+    assert!(test.basic_git_init());
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
@@ -63,7 +63,7 @@ fn verify_dirty_changes_with_a_tag() {
 #[test]
 fn verify_another_commit_with_a_tag() {
     let test = testutils::prep_test("tag-plus-commit");
-    assert!(test.run_cmd("git", &["init"]));
+    assert!(test.basic_git_init());
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
@@ -78,7 +78,7 @@ fn verify_another_commit_with_a_tag() {
 #[test]
 fn verify_trusted_branch() {
     let test = testutils::prep_test("trusted-branch");
-    assert!(test.run_cmd("git", &["init"]));
+    assert!(test.basic_git_init());
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
@@ -104,7 +104,7 @@ fn verify_source_date_epoch_no_repo() {
 #[test]
 fn verify_source_date_epoch_no_commit() {
     let mut test = testutils::prep_test("source-date-epoch-nocommit");
-    assert!(test.run_cmd("git", &["init"]));
+    assert!(test.basic_git_init());
     test.setenv("SOURCE_DATE_EPOCH", "324086400");
     assert!(test.run_cmd("cargo", &["build"]));
     test.assert_manifest_contains("1.0.0");
