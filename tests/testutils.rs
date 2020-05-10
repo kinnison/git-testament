@@ -159,6 +159,14 @@ impl TestSentinel {
         if res.status.success() {
             String::from_utf8(res.stdout).ok()
         } else {
+            println!(
+                "Attempt to get output of {} {:?} failed: {:?}",
+                cmd,
+                args,
+                res.status.code()
+            );
+            println!("Output: {:?}", String::from_utf8(res.stdout));
+            println!("Error: {:?}", String::from_utf8(res.stderr));
             None
         }
     }
