@@ -68,7 +68,7 @@ where
 fn find_git_dir() -> Result<PathBuf, Box<dyn Error>> {
     // run git rev-parse --show-toplevel in the MANIFEST DIR
     let dir = run_git(
-        env::var("CARGO_MANIFEST_DIR").unwrap(),
+        env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR env variable not set"),
         &["rev-parse", "--show-toplevel"],
     )?;
     // TODO: Find a way to go from the stdout to a pathbuf cleanly
