@@ -24,7 +24,7 @@ git-testament-derive = { version = "0.1.9", path = "git-testament-derive" }
 
 [dev-dependencies]
 tempdir = "0.3.7"
-rand = "0.7"
+rand = "0.8"
 regex = "1"
 lazy_static = "1"
 
