@@ -49,6 +49,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
     let mut rng = thread_rng();
     let mut name = (0..10)
         .map(|_| rng.sample(rand::distributions::Alphanumeric))
+        .map(|c| c as char)
         .collect::<String>();
     name.make_ascii_lowercase();
     let name = format!("gtt-{}", name);
