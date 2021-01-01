@@ -537,7 +537,7 @@ pub fn git_testament_macros(input: TokenStream) -> TokenStream {
                             commitinfo.date
                         )
                     };
-                    if commitinfo.tag.find(&pkgver).is_some() {
+                    if commitinfo.tag.contains(&pkgver) {
                         basis
                     } else {
                         format!("{} :: {}", pkgver, basis)
