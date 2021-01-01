@@ -108,7 +108,7 @@ jobs:
           path: target
           key: checks-${{ runner.os }}-cargo-target-dir-${{ steps.toolchain.outputs.rustc_hash }}
       - name: "Set backtraces on"
-        run: echo "::set-env name=RUST_BACKTRACE::1"
+        run: echo "RUST_BACKTRACE=1" >> $GITHUB_ENV
       - name: "Run build"
         uses: actions-rs/cargo@v1
         with:
