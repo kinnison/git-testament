@@ -36,9 +36,10 @@ as a number of seconds since the UNIX epoch) to override `now`.
 
 ## Use in `no_std` scenarios
 
-If you turn on the `git-testament/no-std` feature then the crate will not link to
-anything in the standard library.  You can still generate a `GitTestament` struct
-though it'll be less easy to work with.  Instead it'd be recommended to use the
-`git_testament_macros!()` macro instead which provides a set of macros which produce
-string constants to use.  This is less flexible/capable but can sometimes be easier
-to work with in these kinds of situations.
+This crate does not link to anything in the standard library, but it does rely by default
+on the `alloc` library being available. Disabling the `alloc` feature allows the crate to work 
+in `no_std` environments where the `alloc` library is not available.
+You can still generate a `GitTestament` struct though it'll be less easy to work with.
+Instead it'd be recommended to use the `git_testament_macros!()` macro instead 
+which provides a set of macros which produce string constants to use.
+This is less flexible/capable but can sometimes be easier to work with in these kinds of situations.
