@@ -10,10 +10,6 @@ repository = "https://github.com/kinnison/git-testament/"
 license = "BSD-3-Clause"
 readme = "README.md"
 
-[badges]
-maintenance = { status = "experimental" }
-travis-ci = { repository = "kinnison/git-testament", branch="master" }
-
 [workspace]
 members = [
     "git-testament-derive",
