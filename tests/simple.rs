@@ -9,6 +9,8 @@ fn it_works() {
     println!("Testament: {}", TESTAMENT);
 }
 
+//testament macro is not guaranteed to be indentical to testament's Display in `no_std`
+#[cfg(feature = "alloc")]
 #[test]
 fn macros_work() {
     assert_eq!(render_testament!(TESTAMENT), version_testament!());

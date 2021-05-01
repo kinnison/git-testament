@@ -1,6 +1,6 @@
 [package]
 name = "git-testament"
-version = "0.1.9"
+version = "0.2.0"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 
@@ -20,7 +20,8 @@ members = [
 ]
 
 [dependencies]
-git-testament-derive = { version = "0.1.9", path = "git-testament-derive" }
+no-std-compat = { version = "0.4" }
+git-testament-derive = { version = "0.1.11", path = "git-testament-derive" }
 
 [dev-dependencies]
 tempdir = "0.3.7"
@@ -29,5 +30,5 @@ regex = "1"
 lazy_static = "1"
 
 [features]
-default = []
-no-std = []
+alloc = ["no-std-compat/alloc"]
+default = ["alloc"]

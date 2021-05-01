@@ -6,7 +6,7 @@
 //! [git_testament]: macro.git_testament.html
 //! [git_testament_macros]: macro.git_testament_macros.html
 //!
-//! If you build this library with the `no-std` feature enabled then while
+//! If you build this library with the default `alloc` feature disabled then while
 //! the non-macro form of the testaments are offered, they cannot be rendered
 //! and the [render_testament] macro will not be provided.
 //!
@@ -22,14 +22,15 @@
 //! trusted, you can cause the rendered testament to trust the crate's version
 //! rather than being quite noisy about how the crate version and the tag
 //! version do not match up.
-
-#[cfg(not(feature = "no-std"))]
-use std::fmt::{self, Display, Formatter};
+#![no_std]
+extern crate no_std_compat as std;
+use std::prelude::v1::*;
 
 pub use git_testament_derive::{git_testament, git_testament_macros};
+use std::fmt::{self, Display, Formatter};
 
 /// A modification to a working tree, recorded when the testament was created.
-#[cfg_attr(not(feature = "no-std"), derive(Debug))]
+#[derive(Debug)]
 pub enum GitModification<'a> {
     /// A file or directory was added but not committed
     Added(&'a [u8]),
@@ -42,7 +43,7 @@ pub enum GitModification<'a> {
 }
 
 /// The kind of commit available at the point that the testament was created.
-#[cfg_attr(not(feature = "no-std"), derive(Debug))]
+#[derive(Debug)]
 pub enum CommitKind<'a> {
     /// No repository was present.  Instead the crate's version and the
     /// build date are recorded.
@@ -88,7 +89,7 @@ pub enum CommitKind<'a> {
 /// when you first have run `cargo init`) though that will include the string
 /// `uncommitted` to indicate that once commits are made the information will be
 /// of more use.
-#[cfg_attr(not(feature = "no-std"), derive(Debug))]
+#[derive(Debug)]
 pub struct GitTestament<'a> {
     pub commit: CommitKind<'a>,
     pub modifications: &'a [GitModification<'a>],
@@ -108,7 +109,7 @@ pub const EMPTY_TESTAMENT: GitTestament = GitTestament {
     branch_name: None,
 };
 
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "alloc")]
 impl<'a> GitTestament<'a> {
     #[doc(hidden)]
     pub fn _render_with_version(
@@ -174,7 +175,7 @@ impl<'a> GitTestament<'a> {
 /// println!("The testament is: {}", render_testament!(TESTAMENT));
 /// println!("The fiddled testament is: {}", render_testament!(TESTAMENT, "trusted-branch"));
 /// # }
-#[cfg(not(feature = "no-std"))]
+#[cfg(feature = "alloc")]
 #[macro_export]
 macro_rules! render_testament {
     ( $testament:expr ) => {
@@ -185,42 +186,35 @@ macro_rules! render_testament {
     };
 }
 
-#[cfg(not(feature = "no-std"))]
 impl<'a> Display for CommitKind<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
             CommitKind::NoRepository(crate_ver, build_date) => {
-                fmt.write_fmt(format_args!("{} ({})", crate_ver, build_date))
+                write!(fmt, "{} ({})", crate_ver, build_date)
             }
             CommitKind::NoCommit(crate_ver, build_date) => {
-                fmt.write_fmt(format_args!("{} (uncommitted {})", crate_ver, build_date))
+                write!(fmt, "{} (uncommitted {})", crate_ver, build_date)
             }
             CommitKind::NoTags(commit, when) => {
-                fmt.write_fmt(format_args!("unknown ({} {})", &commit[..9], when))
+                write!(fmt, "unknown ({} {})", &commit[..9], when)
             }
             CommitKind::FromTag(tag, commit, when, depth) => {
                 if *depth > 0 {
-                    fmt.write_fmt(format_args!(
-                        "{}+{} ({} {})",
-                        tag,
-                        depth,
-                        &commit[..9],
-                        when
-                    ))
+                    write!(fmt, "{}+{} ({} {})", tag, depth, &commit[..9], when)
                 } else {
-                    fmt.write_fmt(format_args!("{} ({} {})", tag, &commit[..9], when))
+                    write!(fmt, "{} ({} {})", tag, &commit[..9], when)
                 }
             }
         }
     }
 }
 
-#[cfg(not(feature = "no-std"))]
 impl<'a> Display for GitTestament<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         self.commit.fmt(fmt)?;
         if !self.modifications.is_empty() {
-            fmt.write_fmt(format_args!(
+            write!(
+                fmt,
                 " dirty {} modification{}",
                 self.modifications.len(),
                 if self.modifications.len() > 1 {
@@ -228,7 +222,7 @@ impl<'a> Display for GitTestament<'a> {
                 } else {
                     ""
                 }
-            ))?;
+            )?;
         }
         Ok(())
     }
