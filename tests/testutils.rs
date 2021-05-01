@@ -211,16 +211,12 @@ impl TestSentinel {
             (caps.get(1).unwrap().as_str().to_owned(), 0usize)
         };
 
-        let dirty = if let Some(dirtycap) = caps.get(4) {
-            Some(
-                dirtycap
-                    .as_str()
-                    .parse::<usize>()
-                    .expect("Unable to parse dirty count"),
-            )
-        } else {
-            None
-        };
+        let dirty = caps.get(4).map(|dirtycap| {
+            dirtycap
+                .as_str()
+                .parse::<usize>()
+                .expect("Unable to parse dirty count")
+        });
 
         ManifestParts {
             tag,
