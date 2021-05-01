@@ -1,4 +1,4 @@
-use git_testament::{git_testament, git_testament_macros};
+use git_testament::{git_testament, git_testament_macros, render_testament};
 
 git_testament!(TESTAMENT);
 
@@ -11,7 +11,7 @@ fn it_works() {
 
 #[test]
 fn macros_work() {
-    assert_eq!(format!("{}", TESTAMENT), version_testament!());
+    assert_eq!(render_testament!(TESTAMENT), version_testament!());
 }
 
 mod testutils;
