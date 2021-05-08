@@ -96,16 +96,15 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
                     format!("Insufficient/Incorrect data in timezone offset: {}", offset).into(),
                 );
             }
+            let hours: i32 = offset[1..=2].parse()?;
+            let mins: i32 = offset[3..=4].parse()?;
+            let absoffset: i32 = mins + (hours * 60);
             let offset: i32 = if offset.starts_with('-') {
                 // Negative...
-                let hours: i32 = offset[1..=2].parse()?;
-                let mins: i32 = offset[3..=4].parse()?;
-                -(mins + (hours * 60))
+                -absoffset
             } else {
                 // Positive...
-                let hours: i32 = offset[1..=2].parse()?;
-                let mins: i32 = offset[3..=4].parse()?;
-                mins + (hours * 60)
+                absoffset
             };
             return Ok((sha, time, offset));
         } else if line.is_empty() {
