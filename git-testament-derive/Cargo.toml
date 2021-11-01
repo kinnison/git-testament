@@ -2,7 +2,7 @@
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2018"
 name = "git-testament-derive"
-version = "0.1.12"
+version = "0.1.13"
 
 description = "Record git working tree status when compiling your crate - inner procedural macro"
 documentation = "https://docs.rs/git-testament/"
@@ -18,7 +18,7 @@ log = "0.4"
 proc-macro2 = "1.0"
 
 [dev-dependencies]
-git-testament = { version = "0.2", path = ".." }
+git-testament = { version = "0.2.1", path = ".." }
 
 [lib]
 proc-macro = true
