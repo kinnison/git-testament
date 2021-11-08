@@ -15,9 +15,11 @@ use syn::parse::{Parse, ParseStream};
 use syn::token::Comma;
 use syn::{parse_macro_input, Ident, LitStr, Token};
 
-use chrono::prelude::{DateTime, FixedOffset, NaiveDateTime, TimeZone, Utc};
-
 use log::warn;
+
+use time::{format_description::FormatItem, macros::format_description, OffsetDateTime, UtcOffset};
+
+const DATE_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
 
 struct TestamentOptions {
     name: Ident,
@@ -205,11 +207,16 @@ struct InvocationInformation {
 impl InvocationInformation {
     fn acquire() -> Self {
         let pkgver = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "?.?.?".to_owned());
-        let now = Utc::now();
-        let now = format!("{}", now.format("%Y-%m-%d"));
+        let now = OffsetDateTime::now_utc();
+        let now = now.format(DATE_FORMAT).expect("unable to format now");
         let sde = match env::var("SOURCE_DATE_EPOCH") {
             Ok(sde) => match sde.parse::<i64>() {
-                Ok(sde) => Some(format!("{}", Utc.timestamp(sde, 0).format("%Y-%m-%d"))),
+                Ok(sde) => Some(
+                    OffsetDateTime::from_unix_timestamp(sde)
+                        .expect("couldn't contruct datetime from source date epoch")
+                        .format(DATE_FORMAT)
+                        .expect("couldn't format source date epoch datetime"),
+                ),
                 Err(_) => None,
             },
             Err(_) => None,
@@ -256,10 +263,14 @@ impl GitInformation {
             };
             // Acquire the commit info
             let commit_id = commit;
-            let naive = NaiveDateTime::from_timestamp(commit_time, 0);
-            let offset = FixedOffset::east(commit_offset * 60);
-            let commit_time = DateTime::<FixedOffset>::from_utc(naive, offset);
-            let commit_date = format!("{}", commit_time.format("%Y-%m-%d"));
+            let naive =
+                OffsetDateTime::from_unix_timestamp(commit_time).expect("Invalid commit time");
+            let offset = UtcOffset::from_whole_seconds(commit_offset * 60)
+                .expect("Invalid UTC offset (seconds)");
+            let commit_time = naive.replace_offset(offset);
+            let commit_date = commit_time
+                .format(DATE_FORMAT)
+                .expect("unable to format commit date");
 
             let (tag, distance) = match describe(&git_dir, &commit_id) {
                 Ok(res) => {
