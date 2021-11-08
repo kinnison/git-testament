@@ -18,7 +18,7 @@ log = "0.4"
 proc-macro2 = "1.0"
 
 [dev-dependencies]
-git-testament = { version = "0.2.1", path = ".." }
+git-testament = { version = "0.2.0", path = ".." }
 
 [lib]
 proc-macro = true
