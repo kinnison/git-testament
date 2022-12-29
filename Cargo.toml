@@ -20,7 +20,7 @@ no-std-compat = { version = "0.4" }
 git-testament-derive = { version = "0.1.13", path = "git-testament-derive" }
 
 [dev-dependencies]
-tempdir = "0.3.7"
+tempfile = "3"
 rand = "0.8"
 regex = "1"
 lazy_static = "1"

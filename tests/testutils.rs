@@ -5,7 +5,8 @@ use std::collections::HashMap;
 use std::env;
 use std::fs;
 use std::process::{Command, Stdio};
-use tempdir::TempDir;
+use tempfile::Builder;
+use tempfile::TempDir;
 
 pub struct TestSentinel {
     dir: Option<TempDir>,
@@ -40,11 +41,10 @@ lazy_static! {
 }
 
 pub fn prep_test(name: &str) -> TestSentinel {
-    let outdir = TempDir::new_in(
-        env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned()),
-        &format!("test-{}-", name),
-    )
-    .expect("Unable to create temporary directory for test");
+    let outdir = Builder::new()
+        .prefix(&format!("test-{}-", name))
+        .tempdir_in(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned()))
+        .expect("Unable to create temporary directory for test");
 
     let mut rng = thread_rng();
     let mut name = (0..10)
