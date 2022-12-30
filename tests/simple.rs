@@ -6,7 +6,7 @@ git_testament_macros!(version);
 
 #[test]
 fn it_works() {
-    println!("Testament: {}", TESTAMENT);
+    println!("Testament: {TESTAMENT}");
 }
 
 //testament macro is not guaranteed to be indentical to testament's Display in `no_std`
