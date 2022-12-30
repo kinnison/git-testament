@@ -31,7 +31,7 @@ jobs:
       - name: Acquire source code
         uses: actions/checkout@v2
       - name: Acquire Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ matrix.toolchain }}
           override: true
@@ -86,7 +86,7 @@ jobs:
       - name: Acquire source code
         uses: actions/checkout@v2
       - name: Acquire Rust toolchain
-        uses: actions-rs/toolchain@v1
+        uses: dtolnay/rust-toolchain@v1
         with:
           toolchain: ${{ matrix.toolchain }}
           override: true
