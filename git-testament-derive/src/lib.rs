@@ -577,6 +577,7 @@ pub fn git_testament_macros(input: TokenStream) -> TokenStream {
 
     (quote! {
             #macros
+            #[allow(unused_macros)]
             macro_rules! #mac_testament { () => {#testament}}
     })
     .into()
@@ -605,13 +606,21 @@ fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl 
                 now.clone(),
                 None,
                 quote! {
+                    #[allow(unused_macros)]
                     macro_rules! #mac_branch { () => {None}}
+                    #[allow(unused_macros)]
                     macro_rules! #mac_repo_present { () => {false}}
+                    #[allow(unused_macros)]
                     macro_rules! #mac_commit_present { () => {false}}
+                    #[allow(unused_macros)]
                     macro_rules! #mac_tag_present { () => {false}}
+                    #[allow(unused_macros)]
                     macro_rules! #mac_commit_hash { () => {#pkgver}}
+                    #[allow(unused_macros)]
                     macro_rules! #mac_commit_date { () => {#now}}
+                    #[allow(unused_macros)]
                     macro_rules! #mac_tag_name { () => {#pkgver}}
+                    #[allow(unused_macros)]
                     macro_rules! #mac_tag_distance { () => {0}}
                 },
             );
@@ -627,7 +636,9 @@ fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl 
     };
 
     let basics = quote! {
+        #[allow(unused_macros)]
         macro_rules! #mac_repo_present { () => {true}}
+        #[allow(unused_macros)]
         macro_rules! #mac_branch { () => {#branch_name}}
     };
 
@@ -639,11 +650,17 @@ fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl 
             Some(gitinfo),
             quote! {
                 #basics
+                #[allow(unused_macros)]
                 macro_rules! #mac_commit_present { () => {false}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_present { () => {false}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_commit_hash { () => {#pkgver}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_commit_date { () => {#now}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_name { () => {#pkgver}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_distance { () => {0}}
             },
         );
@@ -655,8 +672,11 @@ fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl 
 
     let basics = quote! {
         #basics
+        #[allow(unused_macros)]
         macro_rules! #mac_commit_present { () => {true}}
+        #[allow(unused_macros)]
         macro_rules! #mac_commit_hash { () => {#commit_hash}}
+        #[allow(unused_macros)]
         macro_rules! #mac_commit_date { () => {#commit_date}}
     };
 
@@ -667,15 +687,21 @@ fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl 
         if commitinfo.tag.is_empty() {
             quote! {
                 #basics
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_present { () => {false}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_name { () => {#pkgver}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_distance { () => {0}}
             }
         } else {
             quote! {
                 #basics
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_present { () => {true}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_name { () => {#tag}}
+                #[allow(unused_macros)]
                 macro_rules! #mac_tag_distance { () => {#distance}}
             }
         },
