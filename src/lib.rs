@@ -139,7 +139,7 @@ impl<'a> GitTestament<'a> {
                             ..*self
                         }
                     )
-                } else if tag.contains(&pkg_version) {
+                } else if tag.contains(pkg_version) {
                     format!("{}", self)
                 } else {
                     format!("{} :: {}", pkg_version, self)
