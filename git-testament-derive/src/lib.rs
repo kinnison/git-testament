@@ -89,13 +89,13 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
         if line.starts_with("committer ") {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() < 2 {
-                return Err(format!("Insufficient committer data in {}", line).into());
+                return Err(format!("Insufficient committer data in {line}").into());
             }
             let time: i64 = parts[parts.len() - 2].parse()?;
             let offset: &str = parts[parts.len() - 1];
             if offset.len() != 5 {
                 return Err(
-                    format!("Insufficient/Incorrect data in timezone offset: {}", offset).into(),
+                    format!("Insufficient/Incorrect data in timezone offset: {offset}").into(),
                 );
             }
             let hours: i32 = offset[1..=2].parse()?;
@@ -111,7 +111,7 @@ fn revparse_single(git_dir: &Path, refname: &str) -> Result<(String, i64, i32), 
             return Ok((sha, time, offset));
         } else if line.is_empty() {
             // Ran out of input, without finding committer
-            return Err(format!("Unable to find committer information in {}", refname).into());
+            return Err(format!("Unable to find committer information in {refname}").into());
         }
     }
 
@@ -248,7 +248,7 @@ impl GitInformation {
         let branch = match branch_name(&git_dir) {
             Ok(b) => b,
             Err(e) => {
-                warn!("Unable to determine branch name: {}", e);
+                warn!("Unable to determine branch name: {e}");
                 None
             }
         };
@@ -257,7 +257,7 @@ impl GitInformation {
             let (commit, commit_time, commit_offset) = match revparse_single(&git_dir, "HEAD") {
                 Ok(commit_data) => commit_data,
                 Err(e) => {
-                    warn!("No commit at HEAD: {}", e);
+                    warn!("No commit at HEAD: {e}");
                     return None;
                 }
             };
@@ -334,7 +334,7 @@ impl GitInformation {
 /// # fn main() {
 ///
 /// // ... later, you can display the testament.
-/// println!("app version {}", TESTAMENT);
+/// println!("app version {TESTAMENT}");
 /// # }
 /// ```
 ///
@@ -491,7 +491,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 /// # fn main() {
 ///
 /// // ... later, you can display the testament.
-/// println!("{}", APP_VERSION);
+/// println!("{APP_VERSION}");
 /// # }
 /// ```
 ///
@@ -511,7 +511,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 pub fn git_testament_macros(input: TokenStream) -> TokenStream {
     let StaticTestamentOptions { name, trusted } =
         parse_macro_input!(input as StaticTestamentOptions);
-    let sname = format!("{}", name);
+    let sname = name.to_string();
     let (pkgver, now, gitinfo, macros) = macro_content(&sname);
 
     // Render the testament string
@@ -550,13 +550,13 @@ pub fn git_testament_macros(input: TokenStream) -> TokenStream {
                     if commitinfo.tag.contains(&pkgver) {
                         basis
                     } else {
-                        format!("{} :: {}", pkgver, basis)
+                        format!("{pkgver} :: {basis}")
                     }
                 }
             }
         } else {
             // We're in a repo, but with no commit
-            format!("{} (uncommitted {})", pkgver, now)
+            format!("{pkgver} (uncommitted {now})")
         };
         if gitinfo.status.is_empty() {
             commitstr
@@ -570,7 +570,7 @@ pub fn git_testament_macros(input: TokenStream) -> TokenStream {
         }
     } else {
         // No git information whatsoever
-        format!("{} ({})", pkgver, now)
+        format!("{pkgver} ({now})")
     };
 
     let mac_testament = concat_ident(&sname, "testament");
@@ -709,5 +709,5 @@ fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl 
 }
 
 fn concat_ident(prefix: &str, suffix: &str) -> Ident {
-    Ident::new(&format!("{}_{}", prefix, suffix), Span::call_site())
+    Ident::new(&format!("{prefix}_{suffix}"), Span::call_site())
 }
