@@ -42,7 +42,7 @@ lazy_static! {
 
 pub fn prep_test(name: &str) -> TestSentinel {
     let outdir = Builder::new()
-        .prefix(&format!("test-{}-", name))
+        .prefix(&format!("test-{name}-"))
         .tempdir_in(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned()))
         .expect("Unable to create temporary directory for test");
 
@@ -52,7 +52,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
         .map(|c| c as char)
         .collect::<String>();
     name.make_ascii_lowercase();
-    let name = format!("gtt-{}", name);
+    let name = format!("gtt-{name}");
 
     // Copy the contents of the test template in
     fs::create_dir(outdir.path().join("src")).expect("Unable to make src/ dir");
@@ -65,7 +65,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
         env!("CARGO_MANIFEST_DIR"),
         "/test-template/Cargo.toml"
     ));
-    let toml = toml.replace("name = \"test2\"", &format!("name = \"{}\"", name));
+    let toml = toml.replace("name = \"test2\"", &format!("name = \"{name}\""));
     fs::write(
         outdir.path().join("Cargo.toml"),
         format!(
@@ -73,7 +73,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
             toml,
             env::var("CARGO_MANIFEST_DIR")
                 .unwrap_or_else(|_| ".".to_owned())
-                .replace("\\", "\\\\")
+                .replace('\\', "\\\\")
         ),
     )
     .expect("Unable to write Cargo.toml for test");
@@ -89,7 +89,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
             "[build]\ntarget-dir=\"{}/target\"",
             env::var("CARGO_MANIFEST_DIR")
                 .unwrap_or_else(|_| "..".to_owned())
-                .replace("\\", "\\\\")
+                .replace('\\', "\\\\")
         ),
     )
     .expect("Unable to write .cargo/config");
@@ -122,7 +122,7 @@ impl TestSentinel {
             .output()
             .expect("Unable to run subcommand");
         if !child.status.success() {
-            println!("Failed to run {} {:?}", cmd, args);
+            println!("Failed to run {cmd} {args:?}");
             println!("Status was: {:?}", child.status.code());
             println!("Stdout was:\n{:?}", String::from_utf8(child.stdout));
             println!("Stderr was:\n{:?}", String::from_utf8(child.stderr));
@@ -268,14 +268,14 @@ impl TestSentinel {
 
     pub fn assert_manifest_contains(&self, substr: &str) {
         let manifest = self.get_manifest().expect("Unable to retrieve manifest");
-        println!("Retrieved manifest: {:?}", manifest);
-        println!("Does it contain: {:?}", substr);
-        assert!(manifest.find(substr) != None);
+        println!("Retrieved manifest: {manifest:?}");
+        println!("Does it contain: {substr:?}");
+        assert!(manifest.contains(substr));
     }
 
     pub fn dirty_code(&self) {
         let main_rs = self.dir.as_ref().unwrap().path().join("src/main.rs");
         let code = fs::read_to_string(&main_rs).expect("Unable to read code");
-        fs::write(main_rs, format!("{}\n\n", code)).expect("Unable to write code");
+        fs::write(main_rs, format!("{code}\n\n")).expect("Unable to write code");
     }
 }
