@@ -51,7 +51,7 @@ fn verify_no_changes_with_a_tag() {
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
-    assert!(test.run_cmd("git", &["tag", "1.0.0"]));
+    assert!(test.run_cmd("git", &["tag", "-m", "1.0.0", "1.0.0"]));
     assert!(test.run_cmd("cargo", &["build"]));
     test.assert_manifest_parts("1.0.0", 0, "TODO", None);
 }
@@ -63,7 +63,7 @@ fn verify_dirty_changes_with_a_tag() {
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
-    assert!(test.run_cmd("git", &["tag", "1.0.0"]));
+    assert!(test.run_cmd("git", &["tag", "-m", "1.0.0", "1.0.0"]));
     test.dirty_code();
     assert!(test.run_cmd("cargo", &["build"]));
     test.assert_manifest_parts("1.0.0", 0, "TODO", Some(1));
@@ -76,7 +76,7 @@ fn verify_another_commit_with_a_tag() {
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
-    assert!(test.run_cmd("git", &["tag", "1.0.0"]));
+    assert!(test.run_cmd("git", &["tag", "-m", "1.0.0", "1.0.0"]));
     test.dirty_code();
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "second"]));
@@ -91,7 +91,7 @@ fn verify_trusted_branch() {
     assert!(test.run_cmd("cargo", &["check"]));
     assert!(test.run_cmd("git", &["add", "."]));
     assert!(test.run_cmd("git", &["commit", "-m", "first"]));
-    assert!(test.run_cmd("git", &["tag", "0.1.0"]));
+    assert!(test.run_cmd("git", &["tag", "-m", "1.0.0", "1.0.0"]));
     assert!(test.run_cmd("git", &["checkout", "-b", "aaaa"]));
     test.dirty_code();
     assert!(test.run_cmd("git", &["add", "."]));
