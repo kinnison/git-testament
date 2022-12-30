@@ -73,7 +73,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
             toml,
             env::var("CARGO_MANIFEST_DIR")
                 .unwrap_or_else(|_| ".".to_owned())
-                .replace("\\", "\\\\")
+                .replace('\\', "\\\\")
         ),
     )
     .expect("Unable to write Cargo.toml for test");
@@ -89,7 +89,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
             "[build]\ntarget-dir=\"{}/target\"",
             env::var("CARGO_MANIFEST_DIR")
                 .unwrap_or_else(|_| "..".to_owned())
-                .replace("\\", "\\\\")
+                .replace('\\', "\\\\")
         ),
     )
     .expect("Unable to write .cargo/config");
@@ -270,7 +270,7 @@ impl TestSentinel {
         let manifest = self.get_manifest().expect("Unable to retrieve manifest");
         println!("Retrieved manifest: {:?}", manifest);
         println!("Does it contain: {:?}", substr);
-        assert!(manifest.find(substr) != None);
+        assert!(manifest.contains(substr));
     }
 
     pub fn dirty_code(&self) {
