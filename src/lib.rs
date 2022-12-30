@@ -140,12 +140,12 @@ impl<'a> GitTestament<'a> {
                         }
                     )
                 } else if tag.contains(pkg_version) {
-                    format!("{}", self)
+                    format!("{self}")
                 } else {
-                    format!("{} :: {}", pkg_version, self)
+                    format!("{pkg_version} :: {self}")
                 }
             }
-            _ => format!("{}", self),
+            _ => format!("{self}"),
         }
     }
 }
@@ -190,10 +190,10 @@ impl<'a> Display for CommitKind<'a> {
     fn fmt(&self, fmt: &mut Formatter) -> fmt::Result {
         match self {
             CommitKind::NoRepository(crate_ver, build_date) => {
-                write!(fmt, "{} ({})", crate_ver, build_date)
+                write!(fmt, "{crate_ver} ({build_date})")
             }
             CommitKind::NoCommit(crate_ver, build_date) => {
-                write!(fmt, "{} (uncommitted {})", crate_ver, build_date)
+                write!(fmt, "{crate_ver} (uncommitted {build_date})")
             }
             CommitKind::NoTags(commit, when) => {
                 write!(fmt, "unknown ({} {})", &commit[..9], when)
