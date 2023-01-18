@@ -1,6 +1,6 @@
 [package]
 name = "git-testament"
-version = "0.2.2"
+version = "0.2.3"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2021"
 
@@ -9,11 +9,10 @@ documentation = "https://docs.rs/git-testament/"
 repository = "https://github.com/kinnison/git-testament/"
 license = "BSD-3-Clause"
 readme = "README.md"
+include = ["src", "tests", "test-template"]
 
 [workspace]
-members = [
-    "git-testament-derive",
-]
+members = ["git-testament-derive"]
 
 [dependencies]
 no-std-compat = { version = "0.4" }
