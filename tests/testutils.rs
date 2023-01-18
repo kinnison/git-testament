@@ -4,6 +4,7 @@ use regex::Regex;
 use std::collections::HashMap;
 use std::env;
 use std::fs;
+use std::path::PathBuf;
 use std::process::{Command, Stdio};
 use tempfile::Builder;
 use tempfile::TempDir;
@@ -40,10 +41,18 @@ lazy_static! {
     static ref TAG_WITH_DISTANCE: Regex = Regex::new(r"^(.+)\+(\d+)$").unwrap();
 }
 
+fn test_base_dir() -> PathBuf {
+    let mut base = PathBuf::from(env!("CARGO_TARGET_TMPDIR"));
+    base.push("tests");
+    base.push("git-testament");
+    std::fs::create_dir_all(&base).expect("Unable to create test base directory");
+    base
+}
+
 pub fn prep_test(name: &str) -> TestSentinel {
     let outdir = Builder::new()
         .prefix(&format!("test-{name}-"))
-        .tempdir_in(env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".to_owned()))
+        .tempdir_in(test_base_dir())
         .expect("Unable to create temporary directory for test");
 
     let mut rng = thread_rng();
