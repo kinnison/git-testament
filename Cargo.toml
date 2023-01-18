@@ -1,6 +1,6 @@
 [package]
 name = "git-testament"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Daniel Silverstone <dsilvers@digital-scurf.org>"]
 edition = "2021"
 

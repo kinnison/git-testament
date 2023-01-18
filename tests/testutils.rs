@@ -72,7 +72,7 @@ pub fn prep_test(name: &str) -> TestSentinel {
     .expect("Unable to copy main.rs in");
     let toml = include_str!(concat!(
         env!("CARGO_MANIFEST_DIR"),
-        "/test-template/Cargo.toml"
+        "/test-template/Cargo.toml.in"
     ));
     let toml = toml.replace("name = \"test2\"", &format!("name = \"{name}\""));
     fs::write(
