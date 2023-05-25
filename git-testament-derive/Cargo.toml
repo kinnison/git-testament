@@ -11,7 +11,7 @@ license = "BSD-3-Clause"
 readme = "README.md"
 
 [dependencies]
-syn = "1.0"
+syn = "2.0"
 quote = "1.0"
 time = { version = "0.3", features = ["formatting", "macros"] }
 log = "0.4"
