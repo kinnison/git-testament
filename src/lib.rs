@@ -24,8 +24,9 @@
 //! version do not match up.
 #![no_std]
 #[doc(hidden)]
-pub extern crate git_testament_derive as __derive;
+pub extern crate core as __core;
 #[doc(hidden)]
+pub extern crate git_testament_derive as __derive;
 extern crate no_std_compat as std;
 use std::prelude::v1::*;
 
@@ -65,7 +66,7 @@ use std::fmt::{self, Display, Formatter};
 macro_rules! git_testament {
     ($name:ident) => {
         $crate::__derive::git_testament! {
-            $name
+            $crate $name
         }
     };
 }
@@ -141,7 +142,7 @@ macro_rules! git_testament {
 macro_rules! git_testament_macros {
     ($name:ident $(, $trusted:literal)?) => {
         $crate::__derive::git_testament_macros! {
-            $name $($trusted)?
+            $crate $name $($trusted)?
         }
     };
 }
@@ -296,10 +297,18 @@ impl<'a> GitTestament<'a> {
 #[macro_export]
 macro_rules! render_testament {
     ( $testament:expr ) => {
-        $testament._render_with_version(env!("CARGO_PKG_VERSION"), None)
+        $crate::GitTestament::_render_with_version(
+            &$testament,
+            $crate::__core::env!("CARGO_PKG_VERSION"),
+            $crate::__core::option::Option::None,
+        )
     };
     ( $testament:expr, $trusted_branch:expr ) => {
-        $testament._render_with_version(env!("CARGO_PKG_VERSION"), Some($trusted_branch))
+        $crate::GitTestament::_render_with_version(
+            &$testament,
+            $crate::__core::env!("CARGO_PKG_VERSION"),
+            $crate::__core::option::Option::Some($trusted_branch),
+        )
     };
 }
 

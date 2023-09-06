@@ -21,18 +21,21 @@ use time::{format_description::FormatItem, macros::format_description, OffsetDat
 const DATE_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]");
 
 struct TestamentOptions {
+    crate_: Ident,
     name: Ident,
 }
 
 impl Parse for TestamentOptions {
     fn parse(input: ParseStream) -> parse::Result<Self> {
         Ok(TestamentOptions {
+            crate_: input.parse()?,
             name: input.parse()?,
         })
     }
 }
 
 struct StaticTestamentOptions {
+    crate_: Ident,
     name: Ident,
     trusted: Option<LitStr>,
 }
@@ -40,6 +43,7 @@ struct StaticTestamentOptions {
 impl Parse for StaticTestamentOptions {
     fn parse(input: ParseStream) -> parse::Result<Self> {
         Ok(StaticTestamentOptions {
+            crate_: input.parse()?,
             name: input.parse()?,
             trusted: input.parse()?,
         })
@@ -306,7 +310,7 @@ impl GitInformation {
 
 #[proc_macro]
 pub fn git_testament(input: TokenStream) -> TokenStream {
-    let TestamentOptions { name } = parse_macro_input!(input as TestamentOptions);
+    let TestamentOptions { crate_, name } = parse_macro_input!(input);
 
     let InvocationInformation { pkgver, now } = InvocationInformation::acquire();
     let gitinfo = match GitInformation::acquire() {
@@ -319,9 +323,9 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             );
             return (quote! {
                 #[allow(clippy::needless_update)]
-                static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
-                    commit: git_testament::CommitKind::NoRepository(#pkgver, #now),
-                    .. git_testament::EMPTY_TESTAMENT
+                static #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+                    commit: #crate_::CommitKind::NoRepository(#pkgver, #now),
+                    .. #crate_::EMPTY_TESTAMENT
                 };
             })
             .into();
@@ -331,9 +335,9 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     // Second simple preliminary step: attempt to get a branch name to report
     let branch_name = {
         if let Some(branch) = gitinfo.branch {
-            quote! {Some(#branch)}
+            quote! {#crate_::__core::option::Option::Some(#branch)}
         } else {
-            quote! {None}
+            quote! {#crate_::__core::option::Option::None}
         }
     };
 
@@ -341,10 +345,10 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     if gitinfo.commitinfo.is_none() {
         return (quote! {
             #[allow(clippy::needless_update)]
-            static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
-                commit: git_testament::CommitKind::NoCommit(#pkgver, #now),
+            static #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+                commit: #crate_::CommitKind::NoCommit(#pkgver, #now),
                 branch_name: #branch_name,
-                .. git_testament::EMPTY_TESTAMENT
+                .. #crate_::EMPTY_TESTAMENT
             };
         })
         .into();
@@ -361,12 +365,12 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             commitinfo.distance,
         );
         quote! {
-            git_testament::CommitKind::FromTag(#tag, #id, #date, #distance)
+            #crate_::CommitKind::FromTag(#tag, #id, #date, #distance)
         }
     } else {
         let (id, date) = (&commitinfo.id, &commitinfo.date);
         quote! {
-            git_testament::CommitKind::NoTags(#id, #date)
+            #crate_::CommitKind::NoTags(#id, #date)
         }
     };
 
@@ -378,16 +382,16 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             let path = status.path.clone().into_bytes();
             match status.status {
                 Untracked => quote! {
-                    git_testament::GitModification::Untracked(&[#(#path),*])
+                    #crate_::GitModification::Untracked(&[#(#path),*])
                 },
                 Added => quote! {
-                    git_testament::GitModification::Added(&[#(#path),*])
+                    #crate_::GitModification::Added(&[#(#path),*])
                 },
                 Modified => quote! {
-                    git_testament::GitModification::Modified(&[#(#path),*])
+                    #crate_::GitModification::Modified(&[#(#path),*])
                 },
                 Deleted => quote! {
-                    git_testament::GitModification::Removed(&[#(#path),*])
+                    #crate_::GitModification::Removed(&[#(#path),*])
                 },
             }
         })
@@ -395,11 +399,11 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
     (quote! {
         #[allow(clippy::needless_update)]
-        static #name: git_testament::GitTestament<'static> = git_testament::GitTestament {
+        static #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
             commit: #commit,
             modifications: &[#(#statuses),*],
             branch_name: #branch_name,
-            .. git_testament::EMPTY_TESTAMENT
+            .. #crate_::EMPTY_TESTAMENT
         };
     })
     .into()
@@ -407,10 +411,13 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn git_testament_macros(input: TokenStream) -> TokenStream {
-    let StaticTestamentOptions { name, trusted } =
-        parse_macro_input!(input as StaticTestamentOptions);
+    let StaticTestamentOptions {
+        crate_,
+        name,
+        trusted,
+    } = parse_macro_input!(input);
     let sname = name.to_string();
-    let (pkgver, now, gitinfo, macros) = macro_content(&sname);
+    let (pkgver, now, gitinfo, macros) = macro_content(&crate_, &sname);
 
     // Render the testament string
     let testament = if let Some(gitinfo) = gitinfo {
@@ -419,7 +426,7 @@ pub fn git_testament_macros(input: TokenStream) -> TokenStream {
                 // No tag
                 format!("unknown ({} {})", &commitinfo.id[..9], commitinfo.date)
             } else {
-                let trusted = if gitinfo.branch == trusted.map(|s| s.value()) {
+                let trusted = if gitinfo.branch == trusted.map(|v| v.value()) {
                     gitinfo.status.is_empty()
                 } else {
                     false
@@ -481,7 +488,10 @@ pub fn git_testament_macros(input: TokenStream) -> TokenStream {
     .into()
 }
 
-fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl quote::ToTokens) {
+fn macro_content(
+    crate_: &Ident,
+    prefix: &str,
+) -> (String, String, Option<GitInformation>, impl quote::ToTokens) {
     let InvocationInformation { pkgver, now } = InvocationInformation::acquire();
     let mac_branch = concat_ident(prefix, "branch");
     let mac_repo_present = concat_ident(prefix, "repo_present");
@@ -527,9 +537,9 @@ fn macro_content(prefix: &str) -> (String, String, Option<GitInformation>, impl 
 
     let branch_name = {
         if let Some(ref branch) = gitinfo.branch {
-            quote! {Some(#branch)}
+            quote! {#crate_::__core::option::Option::Some(#branch)}
         } else {
-            quote! {None}
+            quote! {#crate_::__core::option::Option::None}
         }
     };
 
