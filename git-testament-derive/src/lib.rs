@@ -12,8 +12,7 @@ use proc_macro2::Span;
 use quote::quote;
 use syn::parse;
 use syn::parse::{Parse, ParseStream};
-use syn::token::Comma;
-use syn::{parse_macro_input, Ident, LitStr, Token};
+use syn::{parse_macro_input, Ident, LitStr};
 
 use log::warn;
 
@@ -27,27 +26,23 @@ struct TestamentOptions {
 
 impl Parse for TestamentOptions {
     fn parse(input: ParseStream) -> parse::Result<Self> {
-        let name: Ident = input.parse()?;
-        Ok(TestamentOptions { name })
+        Ok(TestamentOptions {
+            name: input.parse()?,
+        })
     }
 }
 
 struct StaticTestamentOptions {
     name: Ident,
-    trusted: Option<String>,
+    trusted: Option<LitStr>,
 }
 
 impl Parse for StaticTestamentOptions {
     fn parse(input: ParseStream) -> parse::Result<Self> {
-        let name: Ident = input.parse()?;
-        let trusted = if input.peek(Token![,]) {
-            input.parse::<Comma>()?;
-            let t: LitStr = input.parse()?;
-            Some(t.value())
-        } else {
-            None
-        };
-        Ok(StaticTestamentOptions { name, trusted })
+        Ok(StaticTestamentOptions {
+            name: input.parse()?,
+            trusted: input.parse()?,
+        })
     }
 }
 
@@ -309,36 +304,6 @@ impl GitInformation {
     }
 }
 
-// Clippy thinks our fn main() is needless, but it is needed because otherwise
-// we cannot have the invocation of the procedural macro (yet)
-#[allow(clippy::needless_doctest_main)]
-/// Generate a testament for the working tree.
-///
-/// This macro declares a static data structure which represents a testament
-/// to the state of a git repository at the point that a crate was built.
-///
-/// The intention is that the macro should be used at the top level of a binary
-/// crate to provide information about the state of the codebase that the output
-/// program was built from.  This includes a number of things such as the commit
-/// SHA, any related tag, how many commits since the tag, the date of the commit,
-/// and if there are any "dirty" parts to the working tree such as modified files,
-/// uncommitted files, etc.
-///
-/// ```
-/// // Bring the procedural macro into scope
-/// use git_testament::git_testament;
-///
-/// // Declare a testament, it'll end up as a static, so give it a capital
-/// // letters name or it'll result in a warning.
-/// git_testament!(TESTAMENT);
-/// # fn main() {
-///
-/// // ... later, you can display the testament.
-/// println!("app version {TESTAMENT}");
-/// # }
-/// ```
-///
-/// See [`git_testament::GitTestament`] for the type of the defined `TESTAMENT`.
 #[proc_macro]
 pub fn git_testament(input: TokenStream) -> TokenStream {
     let TestamentOptions { name } = parse_macro_input!(input as TestamentOptions);
@@ -440,73 +405,6 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     .into()
 }
 
-// Clippy thinks our fn main() is needless, but it is needed because otherwise
-// we cannot have the invocation of the procedural macro (yet)
-#[allow(clippy::needless_doctest_main)]
-/// Generate a testament for the working tree as a set of static string macros.
-///
-/// This macro declares a set of macros which provide you with your testament
-/// as static strings.
-///
-/// The intention is that the macro should be used at the top level of a binary
-/// crate to provide information about the state of the codebase that the output
-/// program was built from.  This includes a number of things such as the commit
-/// SHA, any related tag, how many commits since the tag, the date of the commit,
-/// and if there are any "dirty" parts to the working tree such as modified files,
-/// uncommitted files, etc.
-///
-/// ```
-/// // Bring the procedural macro into scope
-/// use git_testament::git_testament_macros;
-///
-/// // Declare a testament, it'll end up as pile of macros, so you can
-/// // give it whatever ident-like name you want.  The name will prefix the
-/// // macro names.  Also you can optionally specify
-/// // a branch name which will be considered the "trusted" branch like in
-/// // `git_testament::render_testament!()`
-/// git_testament_macros!(version);
-/// # fn main() {
-///
-/// // ... later, you can display the testament.
-/// println!("app version {}", version_testament!());
-/// # }
-/// ```
-///
-/// The macros all resolve to string literals, boolean literals, or in the case
-/// of `NAME_tag_distance!()` a number.  This is most valuable when you are
-/// wanting to include the information into a compile-time-constructed string
-///
-/// ```
-/// // Bring the procedural macro into scope
-/// use git_testament::git_testament_macros;
-///
-/// // Declare a testament, it'll end up as pile of macros, so you can
-/// // give it whatever ident-like name you want.  The name will prefix the
-/// // macro names.  Also you can optionally specify
-/// // a branch name which will be considered the "trusted" branch like in
-/// // `git_testament::render_testament!()`
-/// git_testament_macros!(version, "stable");
-///
-/// const APP_VERSION: &str = concat!("app version ", version_testament!());
-/// # fn main() {
-///
-/// // ... later, you can display the testament.
-/// println!("{APP_VERSION}");
-/// # }
-/// ```
-///
-/// The set of macros defined is:
-///
-/// * `NAME_testament!()` -> produces a string similar but not guaranteed to be
-///   identical to the result of `Display` formatting a normal testament.
-/// * `NAME_branch!()` -> An Option<&str> of the current branch name
-/// * `NAME_repo_present!()` -> A boolean indicating if there is a repo at all
-/// * `NAME_commit_present!()` -> A boolean indicating if there is a commit present at all
-/// * `NAME_tag_present!()` -> A boolean indicating if there is a tag present
-/// * `NAME_commit_hash!()` -> A string of the commit hash (or crate version if commit not present)
-/// * `NAME_commit_date!()` -> A string of the commit date (or build date if no commit present)
-/// * `NAME_tag_name!()` -> The tag name if present (or crate version if commit not present)
-/// * `NAME_tag_distance!()` -> The number of commits since the tag if present (zero otherwise)
 #[proc_macro]
 pub fn git_testament_macros(input: TokenStream) -> TokenStream {
     let StaticTestamentOptions { name, trusted } =
@@ -521,7 +419,7 @@ pub fn git_testament_macros(input: TokenStream) -> TokenStream {
                 // No tag
                 format!("unknown ({} {})", &commitinfo.id[..9], commitinfo.date)
             } else {
-                let trusted = if gitinfo.branch == trusted {
+                let trusted = if gitinfo.branch == trusted.map(|s| s.value()) {
                     gitinfo.status.is_empty()
                 } else {
                     false
