@@ -23,11 +23,129 @@
 //! rather than being quite noisy about how the crate version and the tag
 //! version do not match up.
 #![no_std]
+#[doc(hidden)]
+pub extern crate core as __core;
+#[doc(hidden)]
+pub extern crate git_testament_derive as __derive;
 extern crate no_std_compat as std;
 use std::prelude::v1::*;
 
-pub use git_testament_derive::{git_testament, git_testament_macros};
 use std::fmt::{self, Display, Formatter};
+
+// Clippy thinks our fn main() is needless, but it is needed because otherwise
+// we cannot have the invocation of the procedural macro (yet)
+#[allow(clippy::needless_doctest_main)]
+/// Generate a testament for the working tree.
+///
+/// This macro declares a static data structure which represents a testament
+/// to the state of a git repository at the point that a crate was built.
+///
+/// The intention is that the macro should be used at the top level of a binary
+/// crate to provide information about the state of the codebase that the output
+/// program was built from.  This includes a number of things such as the commit
+/// SHA, any related tag, how many commits since the tag, the date of the commit,
+/// and if there are any "dirty" parts to the working tree such as modified files,
+/// uncommitted files, etc.
+///
+/// ```
+/// // Bring the procedural macro into scope
+/// use git_testament::git_testament;
+///
+/// // Declare a testament, it'll end up as a static, so give it a capital
+/// // letters name or it'll result in a warning.
+/// git_testament!(TESTAMENT);
+/// # fn main() {
+///
+/// // ... later, you can display the testament.
+/// println!("app version {TESTAMENT}");
+/// # }
+/// ```
+///
+/// See [`GitTestament`] for the type of the defined `TESTAMENT`.
+#[macro_export]
+macro_rules! git_testament {
+    ($name:ident) => {
+        $crate::__derive::git_testament! {
+            $crate $name
+        }
+    };
+}
+
+// Clippy thinks our fn main() is needless, but it is needed because otherwise
+// we cannot have the invocation of the procedural macro (yet)
+#[allow(clippy::needless_doctest_main)]
+/// Generate a testament for the working tree as a set of static string macros.
+///
+/// This macro declares a set of macros which provide you with your testament
+/// as static strings.
+///
+/// The intention is that the macro should be used at the top level of a binary
+/// crate to provide information about the state of the codebase that the output
+/// program was built from.  This includes a number of things such as the commit
+/// SHA, any related tag, how many commits since the tag, the date of the commit,
+/// and if there are any "dirty" parts to the working tree such as modified files,
+/// uncommitted files, etc.
+///
+/// ```
+/// // Bring the procedural macro into scope
+/// use git_testament::git_testament_macros;
+///
+/// // Declare a testament, it'll end up as pile of macros, so you can
+/// // give it whatever ident-like name you want.  The name will prefix the
+/// // macro names.  Also you can optionally specify
+/// // a branch name which will be considered the "trusted" branch like in
+/// // `git_testament::render_testament!()`
+/// git_testament_macros!(version);
+/// # fn main() {
+///
+/// // ... later, you can display the testament.
+/// println!("app version {}", version_testament!());
+/// # }
+/// ```
+///
+/// The macros all resolve to string literals, boolean literals, or in the case
+/// of `NAME_tag_distance!()` a number.  This is most valuable when you are
+/// wanting to include the information into a compile-time-constructed string
+///
+/// ```
+/// // Bring the procedural macro into scope
+/// use git_testament::git_testament_macros;
+///
+/// // Declare a testament, it'll end up as pile of macros, so you can
+/// // give it whatever ident-like name you want.  The name will prefix the
+/// // macro names.  Also you can optionally specify
+/// // a branch name which will be considered the "trusted" branch like in
+/// // `git_testament::render_testament!()`
+/// git_testament_macros!(version, "stable");
+///
+/// const APP_VERSION: &str = concat!("app version ", version_testament!());
+/// # fn main() {
+///
+/// // ... later, you can display the testament.
+/// println!("{APP_VERSION}");
+/// # }
+/// ```
+///
+/// The set of macros defined is:
+///
+/// * `NAME_testament!()` -> produces a string similar but not guaranteed to be
+///   identical to the result of `Display` formatting a normal testament.
+/// * `NAME_branch!()` -> An Option<&str> of the current branch name
+/// * `NAME_repo_present!()` -> A boolean indicating if there is a repo at all
+/// * `NAME_commit_present!()` -> A boolean indicating if there is a commit present at all
+/// * `NAME_tag_present!()` -> A boolean indicating if there is a tag present
+/// * `NAME_commit_hash!()` -> A string of the commit hash (or crate version if commit not present)
+/// * `NAME_commit_date!()` -> A string of the commit date (or build date if no commit present)
+/// * `NAME_tag_name!()` -> The tag name if present (or crate version if commit not present)
+/// * `NAME_tag_distance!()` -> The number of commits since the tag if present (zero otherwise)
+#[macro_export]
+macro_rules! git_testament_macros {
+    ($name:ident $(, $trusted:literal)?) => {
+        $crate::__derive::git_testament_macros! {
+            $crate $name $($trusted)?
+        }
+    };
+}
 
 /// A modification to a working tree, recorded when the testament was created.
 #[derive(Debug)]
@@ -179,10 +297,18 @@ impl<'a> GitTestament<'a> {
 #[macro_export]
 macro_rules! render_testament {
     ( $testament:expr ) => {
-        $testament._render_with_version(env!("CARGO_PKG_VERSION"), None)
+        $crate::GitTestament::_render_with_version(
+            &$testament,
+            $crate::__core::env!("CARGO_PKG_VERSION"),
+            $crate::__core::option::Option::None,
+        )
     };
     ( $testament:expr, $trusted_branch:expr ) => {
-        $testament._render_with_version(env!("CARGO_PKG_VERSION"), Some($trusted_branch))
+        $crate::GitTestament::_render_with_version(
+            &$testament,
+            $crate::__core::env!("CARGO_PKG_VERSION"),
+            $crate::__core::option::Option::Some($trusted_branch),
+        )
     };
 }
 
