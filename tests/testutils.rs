@@ -19,7 +19,7 @@ impl Drop for TestSentinel {
     fn drop(&mut self) {
         self.run_cmd("cargo", &["clean", "-p", &self.prog_name]);
         if env::var("DO_NOT_ERASE_TESTS").is_ok() {
-            self.dir.take().unwrap().into_path();
+            let _ = self.dir.take().unwrap().into_path();
         }
     }
 }
