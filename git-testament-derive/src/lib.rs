@@ -323,7 +323,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             );
             return (quote! {
                 #[allow(clippy::needless_update)]
-                static #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+                const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
                     commit: #crate_::CommitKind::NoRepository(#pkgver, #now),
                     .. #crate_::EMPTY_TESTAMENT
                 };
@@ -345,7 +345,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     if gitinfo.commitinfo.is_none() {
         return (quote! {
             #[allow(clippy::needless_update)]
-            static #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+            const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
                 commit: #crate_::CommitKind::NoCommit(#pkgver, #now),
                 branch_name: #branch_name,
                 .. #crate_::EMPTY_TESTAMENT
@@ -399,7 +399,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
     (quote! {
         #[allow(clippy::needless_update)]
-        static #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+        const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
             commit: #commit,
             modifications: &[#(#statuses),*],
             branch_name: #branch_name,
