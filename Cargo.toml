@@ -15,7 +15,6 @@ include = ["src", "tests", "test-template"]
 members = ["git-testament-derive"]
 
 [dependencies]
-no-std-compat = { version = "0.4" }
 git-testament-derive = { version = "0.1.14", path = "git-testament-derive" }
 
 [dev-dependencies]
@@ -25,5 +24,5 @@ regex = "1"
 lazy_static = "1"
 
 [features]
-alloc = ["no-std-compat/alloc"]
+alloc = []
 default = ["alloc"]

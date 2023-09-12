@@ -23,14 +23,14 @@
 //! rather than being quite noisy about how the crate version and the tag
 //! version do not match up.
 #![no_std]
+#[cfg(feature = "alloc")]
+extern crate alloc;
 #[doc(hidden)]
 pub extern crate core as __core;
 #[doc(hidden)]
 pub extern crate git_testament_derive as __derive;
-extern crate no_std_compat as std;
-use std::prelude::v1::*;
 
-use std::fmt::{self, Display, Formatter};
+use core::fmt::{self, Display, Formatter};
 
 // Clippy thinks our fn main() is needless, but it is needed because otherwise
 // we cannot have the invocation of the procedural macro (yet)
@@ -234,7 +234,7 @@ impl<'a> GitTestament<'a> {
         &self,
         pkg_version: &str,
         trusted_branch: Option<&'static str>,
-    ) -> String {
+    ) -> alloc::string::String {
         match self.commit {
             CommitKind::FromTag(tag, hash, date, _) => {
                 let trusted = match trusted_branch {
@@ -250,7 +250,7 @@ impl<'a> GitTestament<'a> {
                 if trusted {
                     // We trust our branch, so construct an equivalent
                     // testament to render
-                    format!(
+                    alloc::format!(
                         "{}",
                         GitTestament {
                             commit: CommitKind::FromTag(pkg_version, hash, date, 0),
@@ -258,12 +258,12 @@ impl<'a> GitTestament<'a> {
                         }
                     )
                 } else if tag.contains(pkg_version) {
-                    format!("{self}")
+                    alloc::format!("{self}")
                 } else {
-                    format!("{pkg_version} :: {self}")
+                    alloc::format!("{pkg_version} :: {self}")
                 }
             }
-            _ => format!("{self}"),
+            _ => alloc::format!("{self}"),
         }
     }
 }
