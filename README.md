@@ -20,6 +20,21 @@ fn main() {
 }
 ```
 
+The following code may print, for example for a clean build from a 1.0.0 tag:
+
+```
+1.0.0 (763aa159d 2019-04-02)
+```
+
+Or something like `1.0.0+14 (651af89ed 2019-04-02) dirty 4 modifications`
+if the working tree is dirty and there have been some commits since the last
+tag.
+
+To access the testament data (for example to render it yourself), the
+[documentation] describes all the details.
+
+[documentation]: https://docs.rs/git-testament/latest/git_testament/struct.GitTestament.html
+
 ## Reproducible builds
 
 In the case that your build is not being done from a Git repository, you still
