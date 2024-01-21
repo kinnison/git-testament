@@ -20,10 +20,10 @@ fn main() {
 }
 ```
 
-The following code may print, for example for a clean build from a 1.0.0 tag:
+The above code may print, for example, for a clean build from a 1.0.0 tag:
 
 ```
-1.0.0 (763aa159d 2019-04-02)
+My version information: 1.0.0 (763aa159d 2019-04-02)
 ```
 
 Or something like `1.0.0+14 (651af89ed 2019-04-02) dirty 4 modifications`
