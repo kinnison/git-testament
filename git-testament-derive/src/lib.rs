@@ -10,8 +10,8 @@ use std::process::{Command, Stdio};
 use proc_macro::TokenStream;
 use proc_macro2::Span;
 use quote::quote;
-use syn::parse;
 use syn::parse::{Parse, ParseStream};
+use syn::{parse, Visibility};
 use syn::{parse_macro_input, Ident, LitStr};
 
 use log::warn;
@@ -23,14 +23,19 @@ const DATE_FORMAT: &[FormatItem<'_>] = format_description!("[year]-[month]-[day]
 struct TestamentOptions {
     crate_: Ident,
     name: Ident,
+    vis: Option<Visibility>,
 }
 
 impl Parse for TestamentOptions {
     fn parse(input: ParseStream) -> parse::Result<Self> {
-        Ok(TestamentOptions {
-            crate_: input.parse()?,
-            name: input.parse()?,
-        })
+        let crate_ = input.parse()?;
+        let name = input.parse()?;
+        let vis = if input.is_empty() {
+            None
+        } else {
+            Some(input.parse()?)
+        };
+        Ok(TestamentOptions { crate_, name, vis })
     }
 }
 
@@ -310,7 +315,7 @@ impl GitInformation {
 
 #[proc_macro]
 pub fn git_testament(input: TokenStream) -> TokenStream {
-    let TestamentOptions { crate_, name } = parse_macro_input!(input);
+    let TestamentOptions { crate_, name, vis } = parse_macro_input!(input);
 
     let InvocationInformation { pkgver, now } = InvocationInformation::acquire();
     let gitinfo = match GitInformation::acquire() {
@@ -323,7 +328,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
             );
             return (quote! {
                 #[allow(clippy::needless_update)]
-                const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+                #vis const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
                     commit: #crate_::CommitKind::NoRepository(#pkgver, #now),
                     .. #crate_::EMPTY_TESTAMENT
                 };
@@ -345,7 +350,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
     if gitinfo.commitinfo.is_none() {
         return (quote! {
             #[allow(clippy::needless_update)]
-            const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+            #vis const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
                 commit: #crate_::CommitKind::NoCommit(#pkgver, #now),
                 branch_name: #branch_name,
                 .. #crate_::EMPTY_TESTAMENT
@@ -399,7 +404,7 @@ pub fn git_testament(input: TokenStream) -> TokenStream {
 
     (quote! {
         #[allow(clippy::needless_update)]
-        const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
+        #vis const #name: #crate_::GitTestament<'static> = #crate_::GitTestament {
             commit: #commit,
             modifications: &[#(#statuses),*],
             branch_name: #branch_name,

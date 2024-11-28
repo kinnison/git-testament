@@ -4,9 +4,15 @@ git_testament!(TESTAMENT);
 
 git_testament_macros!(version);
 
+mod inner {
+    use git_testament::git_testament;
+    git_testament!(pub INNER);
+}
+
 #[test]
 fn it_works() {
     println!("Testament: {TESTAMENT}");
+    println!("Inner: {}", inner::INNER);
 }
 
 //testament macro is not guaranteed to be indentical to testament's Display in `no_std`

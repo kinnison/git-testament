@@ -64,6 +64,11 @@ use core::fmt::{self, Display, Formatter};
 /// See [`GitTestament`] for the type of the defined `TESTAMENT`.
 #[macro_export]
 macro_rules! git_testament {
+    ($vis:vis $name:ident) => {
+        $crate::__derive::git_testament! {
+            $crate $name $vis
+        }
+    };
     ($name:ident) => {
         $crate::__derive::git_testament! {
             $crate $name
